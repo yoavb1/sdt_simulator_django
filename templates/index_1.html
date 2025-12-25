@@ -1,0 +1,348 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>EV Command Center | Signal Detection</title>
+    <script src="https://cdn.plot.ly/plotly-2.24.1.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;800&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --accent: #6366f1; --sidebar-bg: #0f172a; --border: #e2e8f0; --text-main: #1e293b;
+            --node-dark: #121320; /* Darker node color from image */
+        }
+        body { margin: 0; font-family: 'Plus Jakarta Sans', sans-serif; background: #f8fafc; display: flex; height: 100vh; overflow: hidden; }
+
+        /* SIDEBAR (Kept as requested) */
+        .sidebar { width: 340px; background: var(--sidebar-bg); color: white; display: flex; flex-direction: column; z-index: 100; box-shadow: 5px 0 15px rgba(0,0,0,0.1); }
+        .sidebar-header { padding: 25px; border-bottom: 1px solid rgba(255,255,255,0.1); }
+        .sidebar-content { padding: 20px; overflow-y: auto; flex-grow: 1; }
+        .section-label { font-size: 0.7rem; font-weight: 800; color: #64748b; text-transform: uppercase; margin: 20px 0 10px; display: block; }
+        .glass-card { background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); border-radius: 12px; padding: 15px; margin-bottom: 15px; }
+        .input-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 10px; }
+        label { font-size: 0.7rem; color: #94a3b8; display: block; margin-bottom: 4px; }
+        input[type="number"], select { width: 100%; background: #1e293b; border: 1px solid #334155; color: white; padding: 8px; border-radius: 6px; }
+        input[type="range"] { width: 100%; accent-color: var(--accent); cursor: pointer; }
+        .val-badge { float: right; color: var(--accent); font-weight: 800; font-family: monospace; }
+        .btn { width: 100%; padding: 12px; border: none; border-radius: 8px; font-weight: 700; cursor: pointer; margin-bottom: 8px; transition: 0.2s; }
+        .btn-primary { background: var(--accent); color: white; }
+        .btn-outline { background: transparent; border: 1px solid #334155; color: #94a3b8; }
+        .btn:hover { opacity: 0.9; transform: translateY(-1px); }
+
+        /* MAIN */
+        .main-content {
+            flex: 1; /* Takes up all remaining width next to sidebar */
+            display: flex;
+            flex-direction: column;
+            height: 100vh; /* Forces the main content to be full screen height */
+        }
+
+        .stage {
+            flex: 1; /* This makes the diagram area grow to fill all space NOT taken by the panel */
+            background: #ffffff;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-bottom: 1px solid var(--border);
+            position: relative;
+            min-height: 0; /* Important for flex-shrink behavior */
+        }
+
+        .analytics-panel {
+            height: 50%; /* Uses Viewport Height (vh) to guarantee its size relative to screen */
+            background: #ffffff;
+            padding: 20px;
+            overflow-y: auto;
+            border-top: 2px solid #e2e8f0;
+            box-shadow: 0 -5px 15px rgba(0,0,0,0.05); /* Optional: adds depth */
+        }
+
+        /* DIAGRAM (Reworked to match image) */
+        .diagram-container {
+            position: relative;
+            display: grid;
+            grid-template-columns: 160px 180px 100px 160px; /* System | Temp/Hum | Human | AI/Out */
+            grid-template-rows: repeat(4, 70px);
+            gap: 20px 200px;
+            align-items: center;
+        }
+
+        .node {
+            background: var(--node-dark);
+            border: 2px solid #3b82f6;
+            border-radius: 4px;
+            padding: 10px;
+            color: white;
+            text-align: center;
+            font-size: 0.8rem;
+            z-index: 2;
+            box-shadow: 0 0 15px rgba(59, 130, 246, 0.2);
+        }
+
+        .node-system {
+            grid-row: 1 / 5; grid-column: 1;
+            height: 320px; display: flex; align-items: center; justify-content: center; font-size: 1.4rem;
+        }
+
+        .node-sensor { height: 120px; }
+        .node-ai { height: 40px; border-color: #6366f1; }
+
+        .node-human {
+            grid-row: 2 / 4; grid-column: 3;
+            height: 60px; width: 80px; background: #1e1e2e; border: 1px solid #64748b;
+            display: flex; align-items: center; justify-content: center;
+        }
+
+        .node-output {
+            grid-row: 2 / 4; grid-column: 4;
+            background: radial-gradient(circle, #1a1b2e 0%, #050505 100%);
+            border: 2px solid #333; border-radius: 50%; width: 120px; height: 80px;
+            display: flex; align-items: center; justify-content: center; text-transform: uppercase; font-weight: 800;
+        }
+
+        .slider-label { font-size: 0.7rem; color: #475569; font-weight: bold; margin-bottom: 2px; display: block; }
+        .node input { width: 90%; }
+
+        /* SVG CONNECTORS */
+        svg.connector { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 1; }
+        path { stroke: #94a3b8; stroke-width: 1.5; fill: none; }
+
+        /* ANALYTICS (Kept structure, updated theme) */
+        .results-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 12px; }
+        .stat-card { background: #1a1f2e; padding: 12px; border-radius: 8px; border: 1px solid #334155; color: white; }
+        .stat-label { font-size: 0.6rem; color: #94a3b8; text-transform: uppercase; font-weight: 700; display: block; }
+        .stat-val { font-size: 1.1rem; font-weight: 800; color: #818cf8; }
+    </style>
+</head>
+<body>
+
+    <aside class="sidebar">
+        <div class="sidebar-header"><h1>SYSTEM COMMAND</h1></div>
+        <div class="sidebar-content">
+            <span class="section-label">Environment</span>
+            <div class="glass-card">
+                <label>Prior Probability (Ps) <span class="val-badge" id="Ps_val">0.20</span></label>
+                <input type="range" id="Ps" min="0.01" max="0.99" step="0.01" value="0.2">
+            </div>
+
+            <span class="section-label">Economic Model</span>
+            <div class="glass-card">
+                <div class="input-row">
+                    <div><label>Hit (TP)</label><input type="number" id="v_tp" value="1"></div>
+                    <div><label>Miss (FN)</label><input type="number" id="v_fn" value="-1"></div>
+                </div>
+                <div class="input-row">
+                    <div><label>False Alarm (FP)</label><input type="number" id="v_fp" value="-1"></div>
+                    <div><label>Corr. Reject (TN)</label><input type="number" id="v_tn" value="1"></div>
+                </div>
+                <div class="input-row">
+                    <div><label>AI 1 Cost</label><input type="number" id="c_ai1" value="0"></div>
+                    <div><label>AI 2 Cost</label><input type="number" id="c_ai2" value="0"></div>
+                </div>
+            </div>
+
+            <span class="section-label">Analysis View</span>
+            <div class="glass-card">
+                <label>X-Axis Parameter</label>
+                <select id="param-x" style="margin-bottom: 10px;">
+                    <option value="Ps">Prior Ps</option>
+                    <option value="source_1_sensitivity" selected>Temperature Sensitivity</option>
+                    <option value="source_2_sensitivity">Humidity Sensitivity</option>
+                    <option value="DSS1_sensitivity">AI 1 Sensitivity</option>
+                    <option value="DSS2_sensitivity">AI 2 Sensitivity</option>
+                </select>
+
+                <label>Y-Axis Parameter (3D Only)</label>
+                <select id="param-y" style="margin-bottom: 15px;">
+                    <option value="Ps">Prior Ps</option>
+                    <option value="source_1_sensitivity" selected>Temperature Sensitivity</option>
+                    <option value="source_2_sensitivity">Humidity Sensitivity</option>
+                    <option value="DSS1_sensitivity">AI 1 Sensitivity</option>
+                    <option value="DSS2_sensitivity">AI 2 Sensitivity</option>
+                </select>
+                <button class="btn btn-primary" onclick="runAnalysis('single')">Run Simulation</button>
+                <button class="btn btn-outline" onclick="runAnalysis('2d')">2D Sensitivity Plot</button>
+                <button class="btn btn-outline" onclick="runAnalysis('3d')">3D Surface Plot</button>
+            </div>
+        </div>
+    </aside>
+
+    <main class="main-content">
+        <section class="stage">
+            <div class="diagram-container">
+                <svg class="connector">
+                    <defs>
+                        <marker id="arr" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto">
+                            <polygon points="0 0, 8 3, 0 6" fill="#94a3b8"/>
+                        </marker>
+                    </defs>
+                    <path d="M 165 70 Q 300 30 460 60" marker-end="url(#arr)"/>
+                    <path d="M 165 300 Q 300 340 460 310" marker-end="url(#arr)"/>
+
+                    <path d="M 165 150 Q 185 100 205 100" marker-end="url(#arr)"/>
+                    <path d="M 165 220 Q 185 270 205 270" marker-end="url(#arr)"/>
+
+                    <path d="M 385 130 L 440 170" marker-end="url(#arr)"/>
+                    <path d="M 385 240 L 440 200" marker-end="url(#arr)"/>
+
+                    <path d="M 520 85 L 490 160" marker-end="url(#arr)"/>
+                    <path d="M 520 285 L 490 210" marker-end="url(#arr)"/>
+
+                    <path d="M 610 80 L 660 150" marker-end="url(#arr)"/>
+                    <path d="M 610 295 L 660 220" marker-end="url(#arr)"/>
+
+                    <path d="M 520 185 L 640 185" marker-end="url(#arr)"/>
+                </svg>
+
+                <div class="node node-system">System</div>
+
+                <div class="node node-sensor" style="grid-row: 1/3; grid-column: 2;">
+                    Temperature
+                    <span class="slider-label">d' temp <span id="temp_val">1.5</span></span>
+                    <input type="range" id="temp" min="0" max="5" step="0.1" value="1.5">
+                </div>
+                <div class="node node-sensor" style="grid-row: 3/5; grid-column: 2;">
+                    Humidity
+                    <span class="slider-label">d' humid <span id="humidity_val">1.5</span></span>
+                    <input type="range" id="humidity" min="0" max="5" step="0.1" value="1.5">
+                </div>
+
+                <div class="node node-ai" style="grid-row: 1; grid-column: 3/5; width: 150px; justify-self: center;">
+                    AI 1 <input type="range" id="ai1" min="0" max="5" step="0.1" value="1.5">
+                </div>
+
+                <div class="node node-human">Human</div>
+
+                <div class="node node-ai" style="grid-row: 4; grid-column: 3/5; width: 150px; justify-self: center;">
+                    AI 2 <input type="range" id="ai2" min="0" max="5" step="0.1" value="1.5">
+                </div>
+
+                <div class="node node-output">output</div>
+            </div>
+        </section>
+
+        <section class="analytics-panel">
+            <div id="results-display" style="display:none"><div class="results-grid" id="results-container"></div></div>
+            <div id="plot-container" style="height: 100%;"><div id="plotly-chart"></div></div>
+        </section>
+    </main>
+
+    <script>
+        /* SCRIPT REMAINS THE SAME AS YOUR REQUESTED TEMPLATE */
+        const labelMap = {
+            'Ps': 'Prior Probability (Ps)',
+            'source_1_sensitivity': 'Temperature Sensitivity (d\')',
+            'source_2_sensitivity': 'Humidity Sensitivity (d\')',
+            'DSS1_sensitivity': 'AI 1 Sensitivity (d\')',
+            'DSS2_sensitivity': 'AI 2 Sensitivity (d\')'
+        };
+
+        document.querySelectorAll('input[type="range"]').forEach(s => {
+            s.oninput = () => { const b = document.getElementById(s.id + '_val'); if(b) b.innerText = s.value; };
+        });
+
+        async function runAnalysis(mode) {
+            const payload = {
+                mode, Ps: document.getElementById('Ps').value,
+                temperature: document.getElementById('temp').value,
+                humidity: document.getElementById('humidity').value,
+                ai1: document.getElementById('ai1').value, ai2: document.getElementById('ai2').value,
+                param_x: document.getElementById('param-x').value,
+                param_y: document.getElementById('param-y').value,
+                v_tp: document.getElementById('v_tp').value, v_fn: document.getElementById('v_fn').value,
+                v_fp: document.getElementById('v_fp').value, v_tn: document.getElementById('v_tn').value,
+                c_ai1: document.getElementById('c_ai1').value, c_ai2: document.getElementById('c_ai2').value
+            };
+
+            const response = await fetch('/run-logic/', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'X-CSRFToken': '{{ csrf_token }}' },
+                body: JSON.stringify(payload)
+            });
+            const data = await response.json();
+
+            if (data.status === 'success') {
+                const resDiv = document.getElementById('results-display');
+                const plotDiv = document.getElementById('plot-container');
+
+                if (mode === 'single') {
+                    resDiv.style.display = 'block'; plotDiv.style.display = 'none';
+                    renderComparison(data.results);
+                } else {
+                    resDiv.style.display = 'none'; plotDiv.style.display = 'block';
+                    if (mode === '2d') render2D(data.plot_data, payload.param_x);
+                    else render3D(data.plot_data, payload.param_x, payload.param_y);
+                }
+            }
+        }
+
+        function renderComparison(results) {
+            const container = document.getElementById('results-container');
+            container.innerHTML = '';
+            Object.entries(results).forEach(([key, value]) => {
+                const isTarget = key === 'human_two_dss';
+                container.innerHTML += `
+                    <div class="stat-card ${isTarget ? 'best' : ''}">
+                        <span class="stat-label">${key.replace(/_/g, ' ')}</span>
+                        <span class="stat-val">${value.toFixed(4)}</span>
+                    </div>`;
+            });
+        }
+
+        function render2D(plotData, xKey) {
+            const layout = {
+                title: 'Sensitivity Analysis: Expected Value',
+                xaxis: {
+                    title: labelMap[xKey] || xKey,
+                    gridcolor: '#e2e8f0', // Light grey grid
+                    linecolor: '#1e293b'  // Dark axis line
+                },
+                yaxis: {
+                    title: 'Expected Value (EV)',
+                    gridcolor: '#e2e8f0',
+                    linecolor: '#1e293b'
+                },
+                hovermode: 'closest',
+                paper_bgcolor: '#ffffff', // White plot background
+                plot_bgcolor: '#ffffff',  // White inner background
+                font: { color: '#1e293b' }, // Dark text
+                margin: { t: 50, b: 50, l: 60, r: 30 }
+            };
+            Plotly.react('plotly-chart', plotData, layout);
+        }
+
+        function render3D(plotData, xKey, yKey) {
+            const layout = {
+                paper_bgcolor: '#ffffff', // White background
+                font: { color: '#1e293b' }, // Dark text
+                scene: {
+                    xaxis: {
+                        title: labelMap[xKey] || xKey,
+                        gridcolor: '#e2e8f0',
+                        backgroundcolor: '#f8fafc',
+                        showbackground: true
+                    },
+                    yaxis: {
+                        title: labelMap[yKey] || yKey,
+                        gridcolor: '#e2e8f0',
+                        backgroundcolor: '#f8fafc',
+                        showbackground: true
+                    },
+                    zaxis: {
+                        title: 'EV',
+                        gridcolor: '#e2e8f0'
+                    }
+                },
+                margin: { t: 0, b: 0, l: 0, r: 0 }
+            };
+
+            // I recommend 'Viridis' or 'Turbo' for light mode as they have high contrast
+            Plotly.react('plotly-chart', [{
+                z: plotData.z, x: plotData.x, y: plotData.y,
+                type: 'surface',
+                colorscale: 'Viridis'
+            }], layout);
+        }
+    </script>
+</body>
+</html>
