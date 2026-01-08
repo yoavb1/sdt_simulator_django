@@ -3,11 +3,17 @@ import numpy as np
 from django.shortcuts import render
 from django.http import JsonResponse
 from core.sdt import compute_all_ev, Payoffs
+from scipy.stats import norm
+import math
 
 
 def index(request):
     """Renders the main dashboard."""
     return render(request, 'index.html')
+
+def auc_to_dprime(auc):
+    auc = max(0.5, min(0.999, auc))
+    return norm.ppf(auc) * math.sqrt(2)
 
 
 def run_logic(request):
@@ -22,11 +28,16 @@ def run_logic(request):
         # These are used as 'constants' for the parameters NOT being varied
         print(data)
         ps_val = float(data.get('Ps', 0.2))
-        s1 = float(data.get('temperature', 1.5))
-        s2 = float(data.get('humidity', 1.5))
-        a1 = float(data.get('ai1', 1.5))
-        a2 = float(data.get('ai2', 1.5))
-        human = float(data.get('human', 1.5))
+        auc_temp = float(data.get('temperature', 0.75))
+        auc_humid = float(data.get('humidity', 0.75))
+        auc_ai1 = float(data.get('ai1', 0.75))
+        auc_ai2 = float(data.get('ai2', 0.75))
+
+        # Convert AUC to d' (Sensitivity)
+        s1 = auc_to_dprime(auc_temp)
+        s2 = auc_to_dprime(auc_humid)
+        a1 = auc_to_dprime(auc_ai1)
+        a2 = auc_to_dprime(auc_ai2)
 
         payoffs = Payoffs(
             V_TP=float(data.get('v_tp', 1)),
@@ -51,6 +62,8 @@ def run_logic(request):
             "DSS2_cost": c_ai2
         }
 
+        print(base_params)
+
         # --- MODE: SINGLE (Metric Cards) ---
         if mode == 'single':
             results = compute_all_ev(**base_params)
@@ -60,32 +73,20 @@ def run_logic(request):
         elif mode == '2d':
             param_key = data.get('param_x')
 
-            # 1. FIX: Define the range based on the parameter type
-            if param_key == "Ps":
-                # Probabilities must be between 0 and 1
-                x_grid = np.arange(0.05, 0.96, 0.05)
-            else:
-                # Sensitivities (d') can range from 0 to 5
-                x_grid = np.arange(0.5, 5.1, 0.5)
+            x_grid = np.arange(0.05, 0.96, 0.05) if param_key == "Ps" else np.arange(0.55, 0.96, 0.05)
 
             results_map = {
-                'human_two_dss': {'x': [], 'y': [], 'name': 'Human with 2 DSS'}
-            }
+                'human_two_dss': {'x': [], 'y': [], 'name': 'Human + 2 AI', 'type': 'scatter', 'mode': 'lines+markers'}}
 
             for x in x_grid:
                 run_params = base_params.copy()
-                run_params[param_key] = float(x)
-
-                # 2. RUN MATH
+                run_params[param_key] = float(x) if param_key == "Ps" else auc_to_dprime(x)
                 try:
                     step_res = compute_all_ev(**run_params)
-                    ev_value = step_res.get('human_two_dss', 0)
-                except:
-                    # If the math still fails for a specific value, skip it
+                    results_map['human_two_dss']['x'].append(float(x))
+                    results_map['human_two_dss']['y'].append(float(step_res.get('human_two_dss', 0)))
+                except Exception as e:
                     continue
-
-                results_map['human_two_dss']['x'].append(float(x))
-                results_map['human_two_dss']['y'].append(float(ev_value))
 
             return JsonResponse({
                 'status': 'success',
@@ -95,41 +96,23 @@ def run_logic(request):
 
         # --- MODE: 3D (Surface Plot) ---
         elif mode == '3d':
-            px = data.get('param_x', 'source_1_sensitivity')
-            py = data.get('param_y', 'source_2_sensitivity')
-
-            # 1. Setup grids with reasonable resolution for 3D (20-25 points)
-            # Ps is 0 to 1, others are 0.5 to 5.0
-            x_grid = np.arange(0.1, 0.91, 0.05) if px == "Ps" else np.arange(0.5, 5.1, 0.5)
-            y_grid = np.arange(0.1, 0.91, 0.05) if py == "Ps" else np.arange(0.5, 5.1, 0.5)
+            px, py = data.get('param_x'), data.get('param_y')
+            x_grid = np.arange(0.1, 0.95, 0.05) if px == "Ps" else np.arange(0.55, 0.96, 0.05)
+            y_grid = np.arange(0.1, 0.95, 0.05) if py == "Ps" else np.arange(0.55, 0.96, 0.05)
 
             z_data = []
             for y_val in y_grid:
                 row = []
                 for x_val in x_grid:
-                    # Create fresh params for this specific coordinate
                     run_params = base_params.copy()
-                    run_params[px] = float(x_val)
-                    run_params[py] = float(y_val)
-
-                    # 2. Run computation
+                    run_params[px] = float(x_val) if px == "Ps" else auc_to_dprime(x_val)
+                    run_params[py] = float(y_val) if py == "Ps" else auc_to_dprime(y_val)
                     res = compute_all_ev(**run_params)
-
-                    # 3. Target ONLY the 'human_two_dss' key
-                    # Using .get() prevents crashes if the key is missing
-                    ev_value = res.get('human_two_dss', 0)
-                    row.append(float(ev_value))
-
+                    row.append(float(res.get('human_two_dss', 0)))
                 z_data.append(row)
 
-            return JsonResponse({
-                'status': 'success',
-                'plot_data': {
-                    'z': z_data,
-                    'x': x_grid.tolist(),
-                    'y': y_grid.tolist()
-                },
-                'type': '3d'
-            })
+            return JsonResponse(
+                {'status': 'success', 'plot_data': {'z': z_data, 'x': x_grid.tolist(), 'y': y_grid.tolist()},
+                 'type': '3d'})
 
     return JsonResponse({'status': 'invalid method'}, status=405)

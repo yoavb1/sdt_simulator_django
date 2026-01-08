@@ -31,7 +31,7 @@
 
         /* MAIN LAYOUT */
         .main-content { flex: 1; display: flex; flex-direction: column; height: 100vh; }
-        .stage { height: 40%; background: #ffffff; display: flex; align-items: center; justify-content: center; border-bottom: 1px solid var(--border); position: relative; min-height: 0; }
+        .stage { height: 80%; background: #ffffff; display: flex; align-items: center; justify-content: center; border-bottom: 1px solid var(--border); position: relative; min-height: 0; }
         .analytics-panel { height: 60%; background: #ffffff; padding: 20px; display: flex; flex-direction: column; border-top: 2px solid #e2e8f0; }
 
         /* DIAGRAM NODES */
@@ -70,8 +70,8 @@
         <div class="sidebar-content">
             <span class="section-label">Environment</span>
             <div class="glass-card">
-                <label>Prior Probability (Ps) <span class="val-badge" id="Ps_val">0.20</span></label>
-                <input type="range" id="Ps" min="0.01" max="0.99" step="0.01" value="0.2">
+                <label>Probability to Failure<span class="val-badge" id="Ps_val">0.20</span></label>
+                <input type="range" id="Ps" min="0.1" max="0.9" step="0.01" value="0.2">
             </div>
 
             <span class="section-label">Economic Model</span>
@@ -94,17 +94,17 @@
             <div class="glass-card">
                 <label>X-Axis Parameter</label>
                 <select id="param-x">
-                    <option value="source_1_sensitivity" selected>Temperature Sensitivity</option>
-                    <option value="source_2_sensitivity">Humidity Sensitivity</option>
-                    <option value="Ps">Prior Ps</option>
-                    <option value="DSS1_sensitivity">AI 1 Sensitivity</option>
-                    <option value="DSS2_sensitivity">AI 2 Sensitivity</option>
+                    <option value="source_1_sensitivity" selected>Temperature (AUC)</option>
+                    <option value="source_2_sensitivity">Humidity (AUC)</option>
+                    <option value="Ps">Probability to Failure</option>
+                    <option value="DSS1_sensitivity">AI 1 (AUC)</option>
+                    <option value="DSS2_sensitivity">AI 2 (AUC)</option>
                 </select>
                 <label style="margin-top:10px;">Y-Axis (3D Only)</label>
                 <select id="param-y">
-                    <option value="source_1_sensitivity">Temperature Sensitivity</option>
-                    <option value="source_2_sensitivity" selected>Humidity Sensitivity</option>
-                    <option value="Ps">Prior Ps</option>
+                    <option value="source_1_sensitivity">Temperature (AUC)</option>
+                    <option value="source_2_sensitivity" selected>Humidity (AUC)</option>
+                    <option value="Ps">Probability to Failure</option>
                 </select>
                 <div style="margin-top:15px;">
                     <button class="btn btn-primary" onclick="runAnalysis('single')">Simulate Current</button>
@@ -148,29 +148,33 @@
                     <div class="node sensor-node">
                         <div class="meter-container"><div id="temp_bar" class="meter-fill temp-fill"></div></div>
                         <div class="sensor-controls">
-                            <span style="font-size:0.6rem; color:#f87171; font-weight:800;">TEMP d'</span>
-                            <input type="range" id="temp" min="0" max="5" step="0.1" value="1.5">
-                            <span class="slider-label-small">Value: <span id="temp_val">1.5</span></span>
+                            <span style="font-size:1rem; color:#f87171; font-weight:800;">Temperature AUC</span>
+                            <input type="range" id="temp" min="0.55" max="1" step="0.01" value="0.75">
+                            <span class="slider-label-small">Value: <span id="temp_val">0.75</span></span>
                         </div>
                     </div>
                     <div class="node sensor-node">
                         <div class="meter-container"><div id="humidity_bar" class="meter-fill humid-fill"></div></div>
                         <div class="sensor-controls">
-                            <span style="font-size:0.6rem; color:#60a5fa; font-weight:800;">HUMID d'</span>
-                            <input type="range" id="humidity" min="0" max="5" step="0.1" value="1.5">
-                            <span class="slider-label-small">Value: <span id="humidity_val">1.5</span></span>
+                            <span style="font-size:1rem; color:#60a5fa; font-weight:800;">Humidity AUC</span>
+                            <input type="range" id="humidity" min="0.55" max="1" step="0.01" value="0.75">
+                            <span class="slider-label-small">Value: <span id="humidity_val">0.75</span></span>
                         </div>
                     </div>
                 </div>
 
                 <div class="node-col">
                     <div class="node" style="height: 40px; border-color: var(--accent);">
-                        AI 1 <input type="range" id="ai1" min="0" max="5" step="0.1" value="1.5">
+                        AI 1 AUC: <span id="ai1_val">0.5</span>
+                        <input type="range" id="ai1" min="0.55" max="1" step="0.01" value="0.75">
                     </div>
+
                     <div class="node node-human">HUMAN</div>
+
                     <div class="node" style="height: 40px; border-color: var(--accent);">
-                        AI 2 <input type="range" id="ai2" min="0" max="5" step="0.1" value="1.5">
-                    </div>
+                            AI 2 AUC: <span id="ai2_val">0.5</span>
+                            <input type="range" id="ai2" min="0.55" max="1" step="0.01" value="0.75">
+                        </div>
                 </div>
 
                 <div class="node-col">
@@ -188,35 +192,41 @@
             </div>
         </section>
     </main>
-
     <script>
         const labelMap = {
-            'Ps': 'Prior Ps',
-            'source_1_sensitivity': 'Temp d\'',
-            'source_2_sensitivity': 'Humid d\'',
-            'DSS1_sensitivity': 'AI 1 d\'',
-            'DSS2_sensitivity': 'AI 2 d\''
+            'Ps': 'Probability to Failure',
+            'source_1_sensitivity': 'Temperature AUC',
+            'source_2_sensitivity': 'Humidity AUC',
+            'DSS1_sensitivity': 'AI 1 AUC',
+            'DSS2_sensitivity': 'AI 2 AUC'
         };
 
         function syncUI() {
             const tempVal = document.getElementById('temp').value;
             const humidVal = document.getElementById('humidity').value;
             const psVal = document.getElementById('Ps').value;
+            const ai1Val = document.getElementById('ai1').value;
+            const ai2Val = document.getElementById('ai2').value;
 
             document.getElementById('temp_val').innerText = tempVal;
-            document.getElementById('temp_bar').style.height = (tempVal / 5 * 100) + '%';
-
+            document.getElementById('temp_bar').style.height = ((parseFloat(tempVal) - 0.5) * 200) + '%';
             document.getElementById('humidity_val').innerText = humidVal;
-            document.getElementById('humidity_bar').style.height = (humidVal / 5 * 100) + '%';
-
+            document.getElementById('humidity_bar').style.height = ((parseFloat(humidVal) - 0.5) * 200) + '%';
             document.getElementById('Ps_val').innerText = psVal;
+            document.getElementById('ai1_val').innerText = ai1Val;
+            document.getElementById('ai2_val').innerText = ai2Val;
         }
 
+        // Attach sync to all sliders
         document.querySelectorAll('input[type="range"]').forEach(el => el.oninput = syncUI);
 
         async function runAnalysis(mode) {
+            console.log("Button clicked! Mode selected:", mode);
+
+            // 1. Collect Data
             const payload = {
-                mode, Ps: document.getElementById('Ps').value,
+                mode: mode,
+                Ps: document.getElementById('Ps').value,
                 temperature: document.getElementById('temp').value,
                 humidity: document.getElementById('humidity').value,
                 ai1: document.getElementById('ai1').value,
@@ -231,25 +241,44 @@
                 c_ai2: document.getElementById('c_ai2').value
             };
 
-            const response = await fetch('/run-logic/', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json', 'X-CSRFToken': '{{ csrf_token }}' },
-                body: JSON.stringify(payload)
-            });
-            const data = await response.json();
+            console.log("Sending payload to Python:", payload);
 
-            if (data.status === 'success') {
-                const resDiv = document.getElementById('results-display');
-                const plotDiv = document.getElementById('plot-container');
+            // 2. The Fetch Request
+            try {
+                const response = await fetch('/run-logic/', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': '{{ csrf_token }}' // Ensure this is inside quotes
+                    },
+                    body: JSON.stringify(payload)
+                });
 
-                if (mode === 'single') {
-                    resDiv.style.display = 'block'; plotDiv.style.display = 'none';
-                    renderResults(data.results);
+                console.log("Server response received. Status:", response.status);
+
+                const data = await response.json();
+
+                if (data.status === 'success') {
+                    const resDiv = document.getElementById('results-display');
+                    const plotDiv = document.getElementById('plot-container');
+
+                    if (mode === 'single') {
+                        resDiv.style.display = 'block';
+                        plotDiv.style.display = 'none';
+                        renderResults(data.results);
+                    } else {
+                        resDiv.style.display = 'none';
+                        plotDiv.style.display = 'block';
+                        if (mode === '2d') render2D(data.plot_data, payload.param_x);
+                        else render3D(data.plot_data, payload.param_x, payload.param_y);
+                    }
                 } else {
-                    resDiv.style.display = 'none'; plotDiv.style.display = 'block';
-                    if (mode === '2d') render2D(data.plot_data, payload.param_x);
-                    else render3D(data.plot_data, payload.param_x, payload.param_y);
+                    console.error("Python Error:", data.message);
+                    alert("Error: " + data.message);
                 }
+            } catch (err) {
+                console.error("JavaScript Fetch Error:", err);
+                alert("Could not connect to Python backend.");
             }
         }
 
@@ -257,19 +286,22 @@
             const container = document.getElementById('results-container');
             container.innerHTML = '';
             Object.entries(results).forEach(([key, val]) => {
-                container.innerHTML += `<div class="stat-card">
-                    <span style="font-size:0.7rem; color:#94a3b8; text-transform:uppercase;">${key.replace(/_/g, ' ')}</span><br>
-                    <span class="stat-val">${val.toFixed(4)}</span>
-                </div>`;
+                container.innerHTML += `
+                    <div class="stat-card">
+                        <span style="font-size:0.7rem; color:#94a3b8; text-transform:uppercase;">${key.replace(/_/g, ' ')}</span><br>
+                        <span class="stat-val">${typeof val === 'number' ? val.toFixed(4) : val}</span>
+                    </div>`;
             });
         }
 
         function render2D(plotData, xKey) {
             Plotly.react('plotly-chart', plotData, {
                 title: 'Sensitivity Analysis',
-                xaxis: { title: labelMap[xKey] },
+                xaxis: { title: labelMap[xKey] || xKey },
                 yaxis: { title: 'Expected Value' },
-                margin: { t: 40, b: 40, l: 60, r: 20 }
+                paper_bgcolor: 'rgba(0,0,0,0)',
+                plot_bgcolor: 'rgba(0,0,0,0)',
+                font: { color: '#1e293b' }
             });
         }
 
@@ -278,11 +310,16 @@
                 z: plotData.z, x: plotData.x, y: plotData.y,
                 type: 'surface', colorscale: 'Viridis'
             }], {
-                scene: { xaxis: {title: labelMap[xKey]}, yaxis: {title: labelMap[yKey]}, zaxis: {title: 'EV'} },
+                scene: {
+                    xaxis: {title: labelMap[xKey] || xKey},
+                    yaxis: {title: labelMap[yKey] || yKey},
+                    zaxis: {title: 'EV'}
+                },
                 margin: { t: 0, b: 0, l: 0, r: 0 }
             });
         }
 
+        // Run sync once on load
         syncUI();
     </script>
 </body>

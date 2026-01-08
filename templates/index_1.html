@@ -121,7 +121,7 @@
         <div class="sidebar-content">
             <span class="section-label">Environment</span>
             <div class="glass-card">
-                <label>Prior Probability (Ps) <span class="val-badge" id="Ps_val">0.20</span></label>
+                <label>Probability to Failure<span class="val-badge" id="Ps_val">0.20</span></label>
                 <input type="range" id="Ps" min="0.01" max="0.99" step="0.01" value="0.2">
             </div>
 
@@ -145,7 +145,7 @@
             <div class="glass-card">
                 <label>X-Axis Parameter</label>
                 <select id="param-x" style="margin-bottom: 10px;">
-                    <option value="Ps">Prior Ps</option>
+                    <option value="Ps">Probability to Failure</option>
                     <option value="source_1_sensitivity" selected>Temperature Sensitivity</option>
                     <option value="source_2_sensitivity">Humidity Sensitivity</option>
                     <option value="DSS1_sensitivity">AI 1 Sensitivity</option>
@@ -154,7 +154,7 @@
 
                 <label>Y-Axis Parameter (3D Only)</label>
                 <select id="param-y" style="margin-bottom: 15px;">
-                    <option value="Ps">Prior Ps</option>
+                    <option value="Ps">Probability to Failure</option>
                     <option value="source_1_sensitivity" selected>Temperature Sensitivity</option>
                     <option value="source_2_sensitivity">Humidity Sensitivity</option>
                     <option value="DSS1_sensitivity">AI 1 Sensitivity</option>
@@ -230,7 +230,7 @@
     <script>
         /* SCRIPT REMAINS THE SAME AS YOUR REQUESTED TEMPLATE */
         const labelMap = {
-            'Ps': 'Prior Probability (Ps)',
+            'Ps': 'Probability to Failure',
             'source_1_sensitivity': 'Temperature Sensitivity (d\')',
             'source_2_sensitivity': 'Humidity Sensitivity (d\')',
             'DSS1_sensitivity': 'AI 1 Sensitivity (d\')',
