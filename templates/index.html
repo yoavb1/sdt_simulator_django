@@ -116,36 +116,22 @@
     </aside>
 
     <main class="main-content">
-        <section class="stage">
-            <svg class="connector-svg" viewBox="0 0 1000 400" preserveAspectRatio="none">
+        <section class="stage" id="stage-area">
+            <svg class="connector-svg" id="svg-canvas">
                 <defs>
-                    <marker id="arr" markerWidth="10" markerHeight="7" refX="10" refY="3.5" orient="auto">
-                        <polygon points="0 0, 10 3.5, 0 7" fill="#cbd5e1"/>
+                    <marker id="arr" markerWidth="8" markerHeight="8" refX="8" refY="4" orient="auto">
+                        <polygon points="0 0, 8 4, 0 8" fill="#cbd5e1"/>
                     </marker>
                 </defs>
-                <path d="M 115 200 C 150 140, 200 110, 255 110" marker-end="url(#arr)"/>
-                <path d="M 115 200 C 150 260, 200 290, 255 290" marker-end="url(#arr)"/>
-
-                <path d="M 435 110 L 510 85" marker-end="url(#arr)"/>
-                <path d="M 435 110 L 525 180" marker-end="url(#arr)"/>
-                <path d="M 435 290 L 525 220" marker-end="url(#arr)"/>
-                <path d="M 435 290 L 510 315" marker-end="url(#arr)"/>
-
-                <path d="M 650 85 C 620 110, 620 160, 650 185" marker-end="url(#arr)"/>
-                <path d="M 650 315 C 620 290, 620 240, 650 215" marker-end="url(#arr)"/>
-
-                <path d="M 685 85 L 835 185" marker-end="url(#arr)"/>
-                <path d="M 625 200 L 835 200" marker-end="url(#arr)"/>
-                <path d="M 685 315 L 835 215" marker-end="url(#arr)"/>
-            </svg>
+                </svg>
 
             <div class="diagram-viewport">
                 <div class="node-col">
-                    <div class="node node-system">SYSTEM</div>
+                    <div class="node node-system" id="node-system">SYSTEM</div>
                 </div>
 
                 <div class="node-col">
-                    <div class="node sensor-node">
+                    <div class="node sensor-node" id="node-temp">
                         <div class="meter-container"><div id="temp_bar" class="meter-fill temp-fill"></div></div>
                         <div class="sensor-controls">
                             <span style="font-size:1rem; color:#f87171; font-weight:800;">Temperature AUC</span>
@@ -153,7 +139,7 @@
                             <span class="slider-label-small">Value: <span id="temp_val">0.75</span></span>
                         </div>
                     </div>
-                    <div class="node sensor-node">
+                    <div class="node sensor-node" id="node-humidity">
                         <div class="meter-container"><div id="humidity_bar" class="meter-fill humid-fill"></div></div>
                         <div class="sensor-controls">
                             <span style="font-size:1rem; color:#60a5fa; font-weight:800;">Humidity AUC</span>
@@ -164,21 +150,21 @@
                 </div>
 
                 <div class="node-col">
-                    <div class="node" style="height: 40px; border-color: var(--accent);">
+                    <div class="node" id="node-ai1" style="height: 40px; border-color: var(--accent);">
                         AI 1 AUC: <span id="ai1_val">0.5</span>
                         <input type="range" id="ai1" min="0.55" max="1" step="0.01" value="0.75">
                     </div>
 
-                    <div class="node node-human">HUMAN</div>
+                    <div class="node node-human" id="node-human">HUMAN</div>
 
-                    <div class="node" style="height: 40px; border-color: var(--accent);">
+                    <div class="node" id="node-ai2" style="height: 40px; border-color: var(--accent);">
                             AI 2 AUC: <span id="ai2_val">0.5</span>
                             <input type="range" id="ai2" min="0.55" max="1" step="0.01" value="0.75">
                         </div>
                 </div>
 
                 <div class="node-col">
-                    <div class="node node-output">OUTPUT</div>
+                    <div class="node node-output" id="node-output">OUTPUT</div>
                 </div>
             </div>
         </section>
@@ -201,6 +187,63 @@
             'DSS2_sensitivity': 'AI 2 AUC'
         };
 
+        // --- ARROW LOGIC START ---
+        function drawLine(startId, endId) {
+            const startEl = document.getElementById(startId);
+            const endEl = document.getElementById(endId);
+            const svg = document.getElementById('svg-canvas');
+            const stage = document.getElementById('stage-area').getBoundingClientRect();
+
+            const start = startEl.getBoundingClientRect();
+            const end = endEl.getBoundingClientRect();
+
+            // Calculate relative coordinates
+            const x1 = start.right - stage.left;
+            const y1 = start.top + (start.height / 2) - stage.top;
+            const x2 = end.left - stage.left;
+            const y2 = end.top + (end.height / 2) - stage.top;
+
+            const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
+            const cp = x1 + (x2 - x1) / 2; // Control point for curve
+
+            path.setAttribute("d", `M ${x1} ${y1} C ${cp} ${y1}, ${cp} ${y2}, ${x2} ${y2}`);
+            path.setAttribute("marker-end", "url(#arr)");
+            svg.appendChild(path);
+        }
+
+        function updateConnectors() {
+            const svg = document.getElementById('svg-canvas');
+            // Clear existing lines but keep defs
+            const defs = svg.querySelector('defs');
+            svg.innerHTML = '';
+            svg.appendChild(defs);
+
+            // System to Sensors
+            drawLine('node-system', 'node-temp');
+            drawLine('node-system', 'node-humidity');
+
+            // Sensors to AI/Human
+            drawLine('node-temp', 'node-ai1');
+            drawLine('node-temp', 'node-human');
+            drawLine('node-humidity', 'node-human');
+            drawLine('node-humidity', 'node-ai2');
+
+            // Feedback / Consensus
+            drawLine('node-ai1', 'node-human');
+            drawLine('node-ai2', 'node-human');
+
+            // To Output
+            drawLine('node-ai1', 'node-output');
+            drawLine('node-human', 'node-output');
+            drawLine('node-ai2', 'node-output');
+        }
+
+        // Listen for window resize
+        window.addEventListener('resize', updateConnectors);
+        // Initial draw
+        setTimeout(updateConnectors, 100);
+        // --- ARROW LOGIC END ---
+
         function syncUI() {
             const tempVal = document.getElementById('temp').value;
             const humidVal = document.getElementById('humidity').value;
@@ -217,13 +260,9 @@
             document.getElementById('ai2_val').innerText = ai2Val;
         }
 
-        // Attach sync to all sliders
         document.querySelectorAll('input[type="range"]').forEach(el => el.oninput = syncUI);
 
         async function runAnalysis(mode) {
-            console.log("Button clicked! Mode selected:", mode);
-
-            // 1. Collect Data
             const payload = {
                 mode: mode,
                 Ps: document.getElementById('Ps').value,
@@ -241,20 +280,15 @@
                 c_ai2: document.getElementById('c_ai2').value
             };
 
-            console.log("Sending payload to Python:", payload);
-
-            // 2. The Fetch Request
             try {
                 const response = await fetch('/run-logic/', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
-                        'X-CSRFToken': '{{ csrf_token }}' // Ensure this is inside quotes
+                        'X-CSRFToken': '{{ csrf_token }}'
                     },
                     body: JSON.stringify(payload)
                 });
-
-                console.log("Server response received. Status:", response.status);
 
                 const data = await response.json();
 
@@ -273,11 +307,9 @@
                         else render3D(data.plot_data, payload.param_x, payload.param_y);
                     }
                 } else {
-                    console.error("Python Error:", data.message);
                     alert("Error: " + data.message);
                 }
             } catch (err) {
-                console.error("JavaScript Fetch Error:", err);
                 alert("Could not connect to Python backend.");
             }
         }
@@ -319,7 +351,6 @@
             });
         }
 
-        // Run sync once on load
         syncUI();
     </script>
 </body>

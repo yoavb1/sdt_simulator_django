@@ -279,3 +279,11 @@ def compute_all_ev(
     return results
 
 # streamlit run ui/app.py
+from scipy.stats import norm
+import math
+def auc_to_dprime(auc):
+    auc = max(0.5, min(0.999, auc))
+    return norm.ppf(auc) * math.sqrt(2)
+print((auc_to_dprime(0.98)**2 + auc_to_dprime(0.98)**2)**0.5)
+print((auc_to_dprime(0.98)**2 + auc_to_dprime(0.98)**2)**0.5)
+
