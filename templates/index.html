@@ -314,17 +314,52 @@
             }
         }
 
-        function renderResults(results) {
-            const container = document.getElementById('results-container');
-            container.innerHTML = '';
-            Object.entries(results).forEach(([key, val]) => {
-                container.innerHTML += `
+function renderResults(results) {
+    const container = document.getElementById('results-container');
+    container.innerHTML = '';
+
+    // 1. Explicit mapping for your specific dictionary keys
+    const customLabels = {
+        'auc_human_alone': 'Human Only AUC',
+        'auc_human_ai_1': 'Human + AI 1 AUC',
+        'auc_human_ai_2': 'Human + AI 2 AUC',
+        'auc_human_two_ai': 'Full System AUC',
+        'human_alone': 'Human Only EV',
+        'human_ai_1': 'Human + AI 1 EV',
+        'human_ai_2': 'Human + AI 2 EV',
+        'human_two_ai': 'Full System EV'
+    };
+
+    // 2. Filter keys based on your dictionary structure
+    // Group 1: Keys starting with 'auc'
+    const aucKeys = ['auc_human_alone', 'auc_human_ai_1', 'auc_human_ai_2', 'auc_human_two_ai'];
+    // Group 2: Keys that are just the EV (human_alone, etc.)
+    const evKeys = ['human_alone', 'human_ai_1', 'human_ai_2', 'human_two_ai'];
+
+    // Helper to render a labeled row
+    const renderRow = (title, keys) => {
+        let html = `<div style="grid-column: 1/-1; margin-top: 20px; margin-bottom: 10px;">
+                        <span class="section-label" style="color: var(--accent); border-bottom: 1px solid #334155; display: block; padding-bottom: 5px;">${title}</span>
+                    </div>`;
+
+        keys.forEach(key => {
+            const val = results[key];
+            if (val !== undefined) {
+                const displayName = customLabels[key] || key.replace(/_/g, ' ');
+                html += `
                     <div class="stat-card">
-                        <span style="font-size:0.7rem; color:#94a3b8; text-transform:uppercase;">${key.replace(/_/g, ' ')}</span><br>
+                        <span style="font-size:0.7rem; color:#94a3b8; text-transform:uppercase;">${displayName}</span><br>
                         <span class="stat-val">${typeof val === 'number' ? val.toFixed(4) : val}</span>
                     </div>`;
-            });
-        }
+            }
+        });
+        return html;
+    };
+
+    // 3. Output the two rows
+    container.innerHTML += renderRow('Sensitivity Performance (AUC)', aucKeys);
+    container.innerHTML += renderRow('Economic Performance (Expected Value)', evKeys);
+}
 
         function render2D(plotData, xKey) {
             Plotly.react('plotly-chart', plotData, {

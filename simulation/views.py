@@ -101,11 +101,10 @@ def run_logic(request):
             "DSS2_cost": c_ai2
         }
 
-        print(base_params)
-
         # --- MODE: SINGLE (Metric Cards) ---
         if mode == 'single':
             results = compute_all_ev(**base_params)
+            print(results)
             return JsonResponse({'status': 'success', 'results': results})
 
         # --- MODE: 2D (Sensitivity Line Plot) ---
@@ -115,15 +114,15 @@ def run_logic(request):
             x_grid = np.arange(0.05, 0.96, 0.05) if param_key == "Ps" else np.arange(0.55, 0.96, 0.05)
 
             results_map = {
-                'human_two_dss': {'x': [], 'y': [], 'name': 'Human + 2 AI', 'type': 'scatter', 'mode': 'lines+markers'}}
+                'human_two_ai': {'x': [], 'y': [], 'name': 'Human + 2 AI', 'type': 'scatter', 'mode': 'lines+markers'}}
 
             for x in x_grid:
                 run_params = base_params.copy()
                 run_params[param_key] = float(x) if param_key == "Ps" else auc_to_dprime(x)
                 try:
                     step_res = compute_all_ev(**run_params)
-                    results_map['human_two_dss']['x'].append(float(x))
-                    results_map['human_two_dss']['y'].append(float(step_res.get('human_two_dss', 0)))
+                    results_map['human_two_ai']['x'].append(float(x))
+                    results_map['human_two_ai']['y'].append(float(step_res.get('human_two_ai', 0)))
                 except Exception as e:
                     continue
 
@@ -147,7 +146,7 @@ def run_logic(request):
                     run_params[px] = float(x_val) if px == "Ps" else auc_to_dprime(x_val)
                     run_params[py] = float(y_val) if py == "Ps" else auc_to_dprime(y_val)
                     res = compute_all_ev(**run_params)
-                    row.append(float(res.get('human_two_dss', 0)))
+                    row.append(float(res.get('human_two_ai', 0)))
                 z_data.append(row)
 
             return JsonResponse(

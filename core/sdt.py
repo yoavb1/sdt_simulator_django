@@ -5,6 +5,10 @@ from math import erf, sqrt
 def norm_cdf(x):
     return 0.5 * (1 + erf(x / sqrt(2)))
 
+def d_prime_to_auc(d_prime: float) -> float:
+    """Convert d' sensitivity to Area Under the Curve (AUC)"""
+    return norm_cdf(d_prime / sqrt(2))
+
 
 @dataclass
 class ClassificationProbabilities:
@@ -232,6 +236,25 @@ def compute_all_ev(
     """
     results = {}
 
+    h_sens = combined_sensitivity(source_1_sensitivity, source_2_sensitivity)
+    d1_sens = DSS1_sensitivity if DSS1_sensitivity else 0
+    d2_sens = DSS2_sensitivity if DSS2_sensitivity else 0
+
+    # --- AUC CALCULATIONS ---
+    results['auc_human_alone'] = round(d_prime_to_auc(h_sens), 4)
+
+    # Sensitivity of Human + DSS1
+    h_dss1_sens = combined_sensitivity(h_sens, d1_sens)
+    results['auc_human_ai_1'] = round(d_prime_to_auc(h_dss1_sens), 4)
+
+    # Sensitivity of Human + DSS2
+    h_dss2_sens = combined_sensitivity(h_sens, d2_sens)
+    results['auc_human_ai_2'] = round(d_prime_to_auc(h_dss2_sens), 4)
+
+    # Sensitivity of Human + Both DSS
+    all_combined_sens = np.sqrt(h_sens ** 2 + d1_sens ** 2 + d2_sens ** 2)
+    results['auc_human_two_ai'] = round(d_prime_to_auc(all_combined_sens), 4)
+
     human_sensitivity = combined_sensitivity(source_1_sensitivity, source_2_sensitivity)
 
     # 1️⃣ Human alone (no DSS)
@@ -249,7 +272,7 @@ def compute_all_ev(
                                                    DSS1_sensitivity,
                                                    DSS1_threshold, payoffs)
     ev_one = ev_human_one_dss(Ps, DSS1_conf, human_cond_one_dss, payoffs, c=DSS1_cost)
-    results['human_first_dss'] = float(round(ev_one, 2))
+    results['human_ai_1'] = float(round(ev_one, 2))
 
     # 2️⃣ Human + one DSS (second)
     # Compute optimal threshold if not provided
@@ -260,7 +283,7 @@ def compute_all_ev(
                                                    DSS2_sensitivity,
                                                    DSS2_threshold, payoffs)
     ev_one = ev_human_one_dss(Ps, DSS2_conf, human_cond_one_dss, payoffs, c=DSS2_cost)
-    results['human_second_dss'] = float(round(ev_one, 2))
+    results['human_ai_2'] = float(round(ev_one, 2))
 
     # 3️⃣ Human + two DSS
     # Compute optimal thresholds if not provided
@@ -274,16 +297,16 @@ def compute_all_ev(
     ev_two = ev_human_two_dss(Ps, DSS1_conf, DSS2_conf, human_sensitivity, payoffs)
     # Subtract DSS costs
     ev_two -= DSS1_cost + DSS2_cost
-    results['human_two_dss'] = float(round(ev_two, 2))
+    results['human_two_ai'] = float(round(ev_two, 2))
 
     return results
 
 # streamlit run ui/app.py
-from scipy.stats import norm
-import math
-def auc_to_dprime(auc):
-    auc = max(0.5, min(0.999, auc))
-    return norm.ppf(auc) * math.sqrt(2)
-print((auc_to_dprime(0.98)**2 + auc_to_dprime(0.98)**2)**0.5)
-print((auc_to_dprime(0.98)**2 + auc_to_dprime(0.98)**2)**0.5)
+# from scipy.stats import norm
+# import math
+# def auc_to_dprime(auc):
+#     auc = max(0.5, min(0.999, auc))
+#     return norm.ppf(auc) * math.sqrt(2)
+# print((auc_to_dprime(0.98)**2 + auc_to_dprime(0.98)**2)**0.5)
+# print((auc_to_dprime(0.98)**2 + auc_to_dprime(0.98)**2)**0.5)
 
