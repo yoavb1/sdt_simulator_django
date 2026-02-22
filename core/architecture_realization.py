@@ -1,4 +1,3 @@
-from scipy.stats import norm
 import numpy as np
 import math
 from core.models import *
