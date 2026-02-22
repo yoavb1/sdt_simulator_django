@@ -48,52 +48,65 @@ def auc_to_dprime(auc):
     auc = max(0.5, min(0.999, auc))
     return norm_ppf(auc) * math.sqrt(2)
 
+
 def run_logic(request):
     if request.method == 'POST':
         data = json.loads(request.body)
         mode = data.get('mode', 'single')
 
-        # 1. Capture base parameters
-        ps = 0.5 #float(data.get('Ps', 0.5))
-        loa = int(data.get('loa', 5))
-        sys_d = auc_to_dprime(float(data.get('auto_auc', 0.75)))
-        h_d = auc_to_dprime(float(data.get('human_auc', 0.75)))
+        # 1. Capture base parameters from the request
+        # Use the specific keys from your new HTML sliders
+        ps = 0.5
+        loa_2 = int(data.get('loa_2', 5))
+        loa_3 = int(data.get('loa_3', 5))
+
+        # Get raw AUC values before conversion (important for the 2D loop)
+        sys_auc_base = float(data.get('auto_auc', 0.75))
+        hum_auc_base = float(data.get('human_auc', 0.75))
+
+        # d' conversion for the 'single' run
+        sys_d = auc_to_dprime(sys_auc_base)
+        h_d = auc_to_dprime(hum_auc_base)
 
         iterations = 2000
 
         if mode == 'single':
-            results = run_simulation(iterations, loa, ps, sys_d, h_d)
+            # Run simulation with the specific LoAs for each stage
+            results = run_simulation(iterations, loa_2, loa_3, ps, sys_d, h_d, 0.5, 0.4)
             results_obj = {'workload': results.workload, 'accuracy': results.accuracy}
             return JsonResponse({'status': 'success', 'results': results_obj})
 
         elif mode == '2d':
             param_x = data.get('param_x')
-            # Define grid based on the parameter selected
-            if param_x == 'loa':
+
+            # 2. Define X-axis range
+            if param_x in ['loa_2', 'loa_3']:
                 x_values = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
-            # elif param_x in ['auto_auc', 'human_auc']:
             else:
-                # Start sensitivity plots at 0.5 as requested
                 x_values = np.linspace(0.5, 0.99, 10).tolist()
-            # else:  # Ps
-            #     x_values = np.linspace(0.01, 0.99, 10).tolist()
 
             acc_list = []
             wl_list = []
 
             for x in x_values:
-                # Override the specific variable for this loop step
-                # curr_ps = x if param_x == 'Ps' else ps
-                curr_loa = int(x) if param_x == 'loa' else loa
-                curr_sys_auc = x if param_x == 'auto_auc' else sys_d
-                curr_hum_auc = x if param_x == 'human_auc' else h_d
+                # 3. Parameter Switching Logic
+                # We vary only the selected param_x, others stay as base slider values
+                curr_loa_2 = int(x) if param_x == 'loa_2' else loa_2
+                curr_loa_3 = int(x) if param_x == 'loa_3' else loa_3
+
+                # Use AUC for the loop variable, then convert to d'
+                curr_sys_auc = x if param_x == 'auto_auc' else sys_auc_base
+                curr_hum_auc = x if param_x == 'human_auc' else hum_auc_base
 
                 res = run_simulation(
                     iterations,
-                    curr_loa,
+                    curr_loa_2,
+                    curr_loa_3,
                     ps,
                     auc_to_dprime(curr_sys_auc),
-                    auc_to_dprime(curr_hum_auc)
+                    auc_to_dprime(curr_hum_auc),
+                    0.5,  # automation_threshold
+                    0.4  # human_threshold
                 )
                 acc_list.append(res.accuracy)
                 wl_list.append(res.workload)

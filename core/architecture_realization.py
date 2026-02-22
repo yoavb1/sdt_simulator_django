@@ -9,13 +9,19 @@ def from_LoA_to_thresholds(LoA: int) -> LevelOfAutomation:
     """
     Higher LoA -> Narrower uncertainty zone (Thresholds move toward 0.5).
     LoA 1: Widest zone (Human involved often).
-    LoA 10: Narrowest zone (Machine takes most decisions).
+    LoA 10: Narrowest zone (Machine takes all decisions).
     """
-    if LoA == 10:
+    if LoA == 1:
         return LevelOfAutomation(
             level=LoA,
-            low_threshold=round(1.1, 4),
-            high_threshold=round(-0.1, 4)
+            low_threshold=round(0, 4),
+            high_threshold=round(1, 4)
+        )
+    elif LoA == 10:
+        return LevelOfAutomation(
+            level=LoA,
+            low_threshold=round(0.5, 4),
+            high_threshold=round(0.5, 4)
         )
 
     max_uncertainty_width = 1
@@ -30,7 +36,6 @@ def from_LoA_to_thresholds(LoA: int) -> LevelOfAutomation:
         low_threshold=round(low_threshold, 4),
         high_threshold=round(high_threshold, 4)
     )
-    return LevelOfAutomation(level=LoA, low_threshold=low_threshold, high_threshold=high_threshold)
 
 def get_posterior(x: float, mu_s:float, mu_n: float, sigma: float, prior: float):
     # Calculate likelihoods (PDF values)
@@ -60,18 +65,23 @@ def compute_combined_posterior(x: float, mu_s:float, mu_n: float, sigma: float, 
 
 def run_simulation(
         number_of_iterations: int,
-        level_of_automation: int,
+        level_of_automation_stage_2: int,
+        level_of_automation_stage_3: int,
         prior: float,
         sys_d: float,
-        h_d: float
+        h_d: float,
+        automation_threshold: float = 0.5,
+        human_threshold: float = 0.4
 ) -> OutcomeVariables:
 
     wl = 0
     acc = 0
-    LoA = from_LoA_to_thresholds(level_of_automation)
+    LoA_2 = from_LoA_to_thresholds(level_of_automation_stage_2)
+    LoA_3 = from_LoA_to_thresholds(level_of_automation_stage_3)
     for i in range(number_of_iterations):
+        # stage 2 - Information Analysis
         signal_or_noise = np.random.uniform(0, 1)
-        if signal_or_noise < prior:
+        if signal_or_noise > prior:
             signal_or_noise = 'N'
             system_info = np.random.normal(0 - sys_d/2, 1)
             human_info = np.random.normal(0 - h_d / 2, 1)
@@ -80,16 +90,34 @@ def run_simulation(
             system_info = np.random.normal(sys_d/2, 1)
             human_info = np.random.normal(h_d / 2, 1)
         system_posterior = get_posterior(system_info, sys_d / 2, -sys_d / 2, 1, prior)
-        if system_posterior < LoA.low_threshold or system_posterior > LoA.high_threshold:
-            state = 'S' if system_posterior > 0.5 else 'N'
+
+        if LoA_2.level >= 10:
+            uncertain_2 = False
         else:
-            # Uncertainty Zone: Human-Augmented Analysis
+            uncertain_2 = (LoA_2.low_threshold <= system_posterior <= LoA_2.high_threshold)
+
+        if uncertain_2:
             wl += 1
+            # Human fuser improves the data
             fused_posterior = compute_combined_posterior(human_info, h_d / 2, -h_d / 2, 1, system_posterior)
-            state = 'S' if fused_posterior > 0.5 else 'N'
+        else:
+            # AI handles analysis alone
+            fused_posterior = system_posterior
+        if LoA_3.level >= 10:
+            uncertain_3 = False
+        else:
+            uncertain_3 = (LoA_3.low_threshold <= fused_posterior <= LoA_3.high_threshold)
+
+        if uncertain_3:
+            wl += 1
+            # Human makes the final decision
+            state = 'S' if fused_posterior > human_threshold else 'N'
+        else:
+            # AI makes the final decision
+            state = 'S' if fused_posterior > automation_threshold else 'N'
 
         if state == signal_or_noise:
             acc += 1
 
-    return OutcomeVariables(workload=round(wl / number_of_iterations, 2),
-                            accuracy=round(acc / number_of_iterations, 2))
+    return OutcomeVariables(workload=round(wl / (number_of_iterations*2), 2),
+                            accuracy=round(acc / (number_of_iterations), 2))

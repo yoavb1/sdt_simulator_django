@@ -13,6 +13,7 @@
             --accent-secondary: #10b981;
             --text-main: #334155;
             --card-bg: #ffffff;
+            --stage-bg: #f1f5f9;
         }
 
         body {
@@ -22,149 +23,99 @@
             background: var(--bg-color);
             height: 100vh;
             color: var(--text-main);
+            overflow: hidden;
         }
 
         /* --- Sidebar Style --- */
         .sidebar {
-            width: 320px;
+            width: 300px;
             background: var(--sidebar-color);
             color: white;
-            padding: 30px 25px;
+            padding: 30px 20px;
             display: flex;
             flex-direction: column;
             box-shadow: 4px 0 15px rgba(0,0,0,0.05);
             z-index: 10;
         }
 
-        .sidebar h2 {
-            font-weight: 600;
-            font-size: 1.4rem;
-            margin-bottom: 30px;
-            letter-spacing: -0.5px;
-            color: #f1f5f9;
-        }
-
-        .control-group { margin-bottom: 25px; }
-
-        label {
-            display: flex;
-            justify-content: space-between;
-            font-size: 0.85rem;
-            color: #94a3b8;
-            margin-bottom: 8px;
-            font-weight: 400;
-        }
-
+        .sidebar h2 { font-weight: 600; font-size: 1.2rem; margin-bottom: 30px; color: #f1f5f9; }
+        .control-group { margin-bottom: 20px; }
+        label { display: flex; justify-content: space-between; font-size: 0.8rem; color: #94a3b8; margin-bottom: 8px; }
         label span { color: var(--accent-primary); font-weight: 600; }
 
-        /* --- Custom Inputs --- */
-        input[type="range"] {
-            width: 100%;
-            height: 6px;
-            background: #334155;
-            border-radius: 5px;
-            outline: none;
-            -webkit-appearance: none;
-        }
+        input[type="range"] { width: 100%; height: 5px; background: #334155; border-radius: 5px; outline: none; -webkit-appearance: none; }
+        input[type="range"]::-webkit-slider-thumb { -webkit-appearance: none; width: 14px; height: 14px; background: var(--accent-primary); border-radius: 50%; cursor: pointer; }
 
-        input[type="range"]::-webkit-slider-thumb {
-            -webkit-appearance: none;
-            width: 18px;
-            height: 18px;
-            background: var(--accent-primary);
-            border-radius: 50%;
-            cursor: pointer;
-            transition: transform 0.2s ease;
-        }
+        select { width: 100%; padding: 8px; border-radius: 6px; border: 1px solid #334155; background: #0f172a; color: white; font-size: 0.85rem; }
 
-        input[type="range"]::-webkit-slider-thumb:hover { transform: scale(1.2); }
-
-        select {
-            width: 100%;
-            padding: 10px;
-            border-radius: 8px;
-            border: 1px solid #334155;
-            background: #0f172a;
-            color: white;
-            font-size: 0.9rem;
-            margin-top: 5px;
-        }
-
-        /* --- Main Content --- */
-        .main-content {
+        /* --- Main Layout --- */
+        .main-container {
             flex: 1;
-            padding: 40px;
             display: flex;
             flex-direction: column;
-            gap: 25px;
+            height: 100vh;
+        }
+
+        /* Upper Panel (20%) */
+        .stages-panel {
+            height: 22%;
+            padding: 20px 40px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: white;
+            border-bottom: 1px solid #e2e8f0;
+            gap: 15px;
+        }
+
+        .stage-box {
+            flex: 1;
+            height: 100%;
+            background: var(--stage-bg);
+            border-radius: 12px;
+            padding: 15px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+            border: 1px solid #e2e8f0;
+            transition: all 0.3s ease;
+        }
+
+        .stage-box h4 { margin: 0 0 10px 0; font-size: 0.75rem; text-transform: uppercase; color: #64748b; letter-spacing: 0.5px; }
+        .stage-box.active { border: 2px solid var(--accent-primary); background: #eef2ff; }
+
+        /* Lower Panel (80%) */
+        .lower-panel {
+            flex: 1;
+            padding: 30px 40px;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
             overflow-y: auto;
         }
 
-        .results-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 25px; }
+        .results-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+        .card { background: white; padding: 20px; border-radius: 12px; box-shadow: 0 2px 10px rgba(0,0,0,0.02); text-align: center; border: 1px solid #edf2f7; }
+        .card h3 { margin: 0; font-size: 0.8rem; color: #64748b; }
+        .card div { font-size: 2rem; font-weight: 600; color: var(--sidebar-color); margin-top: 5px; }
 
-        .card {
-            background: var(--card-bg);
-            padding: 25px;
-            border-radius: 16px;
-            box-shadow: 0 4px 20px rgba(0,0,0,0.03);
-            text-align: center;
-            border: 1px solid rgba(0,0,0,0.02);
-            transition: transform 0.3s ease;
-        }
+        #plot-area { background: white; border-radius: 12px; flex-grow: 1; min-height: 400px; padding: 15px; border: 1px solid #edf2f7; }
 
-        .card:hover { transform: translateY(-3px); }
-
-        .card h3 {
-            margin: 0;
-            font-size: 0.85rem;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-            color: #64748b;
-        }
-
-        .card div {
-            font-size: 2.5rem;
-            font-weight: 600;
-            margin-top: 10px;
-            color: var(--sidebar-color);
-        }
-
-        #plot-area {
-            background: var(--card-bg);
-            border-radius: 16px;
-            flex-grow: 1;
-            min-height: 450px;
-            padding: 20px;
-            box-shadow: 0 4px 20px rgba(0,0,0,0.03);
-            border: 1px solid rgba(0,0,0,0.02);
-        }
-
-        /* --- Buttons --- */
-        button {
-            width: 100%;
-            padding: 12px;
-            margin-top: 12px;
-            cursor: pointer;
-            border: none;
-            border-radius: 10px;
-            font-weight: 600;
-            font-size: 0.95rem;
-            transition: all 0.2s ease;
-        }
-
+        button { width: 100%; padding: 10px; margin-top: 10px; cursor: pointer; border: none; border-radius: 8px; font-weight: 600; transition: 0.2s; }
         .btn-run { background: var(--accent-primary); color: white; }
-        .btn-run:hover { background: #4f46e5; box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3); }
-
         .btn-plot { background: var(--accent-secondary); color: white; }
-        .btn-plot:hover { background: #059669; box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3); }
 
-        hr { border: 0; border-top: 1px solid #334155; margin: 10px 0; }
+        /* Small sliders for stages */
+        .stage-slider { width: 80% !important; margin-top: 5px; }
+        .stage-val { font-size: 0.9rem; font-weight: bold; color: var(--accent-primary); }
     </style>
 </head>
 <body>
 
 <div class="sidebar">
-    <h2>Simulation Controls</h2>
+    <h2>Global Parameters</h2>
 
     <div class="control-group">
         <label>Automation AUC <span id="auto_v">0.75</span></label>
@@ -176,32 +127,56 @@
         <input type="range" id="human_auc" min="0.5" max="0.99" step="0.01" value="0.75" oninput="human_v.innerText=this.value">
     </div>
 
-    <div class="control-group">
-        <label>LoA (1-10) <span id="loa_v">5</span></label>
-        <input type="range" id="loa" min="1" max="10" step="1" value="5" oninput="loa_v.innerText=this.value">
-    </div>
-
-    <hr>
+    <hr style="border-top: 1px solid #334155; margin-bottom:20px;">
 
     <div class="control-group">
-        <label>X-Axis Analysis</label>
+        <label>X-Axis for Plot</label>
         <select id="param_x">
-            <option value="loa">Level of Automation (LoA)</option>
+            <option value="loa_2">LoA: Information Analysis</option>
+            <option value="loa_3">LoA: Action Selection</option>
             <option value="auto_auc">Automation AUC</option>
             <option value="human_auc">Human AUC</option>
         </select>
-        <button class="btn-run" onclick="sendRequest('single')">Single Iteration Run</button>
-        <button class="btn-plot" onclick="sendRequest('2d')">Generate Analytics Plot</button>
+        <button class="btn-run" onclick="sendRequest('single')">Run Simulation</button>
+        <button class="btn-plot" onclick="sendRequest('2d')">Generate Plot</button>
     </div>
 </div>
 
-<div class="main-content">
-    <div class="results-grid" id="metrics">
-        <div class="card"><h3>System Accuracy</h3><div id="acc_res">-</div></div>
-        <div class="card"><h3>Human Workload</h3><div id="wl_res">-</div></div>
+<div class="main-container">
+    <div class="stages-panel">
+    <div class="stage-box">
+        <h4>1. Information Acquisition</h4>
+        <div style="font-size: 0.8rem; color: #94a3b8;">Manual Sensing</div>
     </div>
-    <div id="plot-area">
-        <div id="chart" style="width:100%;height:100%;"></div>
+
+    <div class="stage-box active">
+        <h4>2. Information Analysis</h4>
+        <label style="width:100%; justify-content:center; gap:10px;">LoA: <span id="loa_2_v" class="stage-val">5</span></label>
+        <input type="range" id="loa_2" class="stage-slider" min="1" max="10" step="1" value="5"
+               oninput="document.getElementById('loa_2_v').innerText=this.value">
+    </div>
+
+    <div class="stage-box active">
+        <h4>3. Action Selection</h4>
+        <label style="width:100%; justify-content:center; gap:10px;">LoA: <span id="loa_3_v" class="stage-val">5</span></label>
+        <input type="range" id="loa_3" class="stage-slider" min="1" max="10" step="1" value="5"
+               oninput="document.getElementById('loa_3_v').innerText=this.value">
+    </div>
+
+    <div class="stage-box">
+        <h4>4. Action Implementation</h4>
+        <div style="font-size: 0.8rem; color: #94a3b8;">Full Execution</div>
+    </div>
+</div>
+
+    <div class="lower-panel">
+        <div class="results-grid">
+            <div class="card"><h3>Total System Accuracy</h3><div id="acc_res">-</div></div>
+            <div class="card"><h3>Total Human Workload</h3><div id="wl_res">-</div></div>
+        </div>
+        <div id="plot-area">
+            <div id="chart" style="width:100%;height:100%;"></div>
+        </div>
     </div>
 </div>
 
@@ -212,15 +187,18 @@ async function sendRequest(mode) {
     const labelMap = {
         'human_auc': 'Human AUC',
         'auto_auc': 'Automation AUC',
-        'loa': 'Level of Automation (LoA)'
+        'loa_2': 'LoA (Information Analysis)',
+        'loa_3': 'LoA (Action Selection)'
     };
 
+    // Build payload using specific sliders
     const payload = {
         mode: mode,
         Ps: 0.5,
         auto_auc: document.getElementById('auto_auc').value,
         human_auc: document.getElementById('human_auc').value,
-        loa: document.getElementById('loa').value,
+        loa_2: document.getElementById('loa_2').value,
+        loa_3: document.getElementById('loa_3').value,
         param_x: paramX
     };
 
@@ -240,48 +218,33 @@ async function sendRequest(mode) {
             const layout = {
                 title: {
                     text: `Accuracy/Workload Depend on ${labelMap[paramX]}`,
-                    font: {
-                    family: 'Inter, sans-serif',
-                    size: 28, // Increased from 18
-                    color: '#1e293b'
-                }
+                    font: { family: 'Inter, sans-serif', size: 24, color: '#1e293b' }
                 },
                 xaxis: {
-                title: {
-                    text: labelMap[paramX],
-                    font: { size: 20, color: '#334155', weight: 'bold' } // Larger Axis Label
-                },
-                tickfont: { size: 16 }, // Larger numbers on axis
-                gridcolor: '#f1f5f9',
-                zeroline: false
+                    title: { text: labelMap[paramX], font: { size: 18, color: '#334155', weight: 'bold' } },
+                    tickfont: { size: 14 },
+                    gridcolor: '#f1f5f9',
+                    zeroline: false
                 },
                 yaxis: {
-                title: {
-                    text: 'Rate',
-                    font: { size: 20, color: '#334155', weight: 'bold' } // Larger Axis Label
+                    title: { text: 'Rate', font: { size: 18, color: '#334155', weight: 'bold' } },
+                    tickfont: { size: 14 },
+                    range: [0, 1.05],
+                    gridcolor: '#f1f5f9',
+                    zeroline: false
                 },
-                tickfont: { size: 16 }, // Larger numbers on axis
-                range: [0, 1.05],
-                gridcolor: '#f1f5f9',
-                zeroline: false
-                 },
-                legend: {
-                orientation: 'h',
-                y: -0.2,
-                font: { size: 18 } // Larger legend text
-                },
-                margin: { t: 60, b: 80, l: 60, r: 40 },
+                legend: { orientation: 'h', y: -0.2, font: { size: 16 } },
+                margin: { t: 80, b: 100, l: 80, r: 40 },
                 plot_bgcolor: '#ffffff',
                 paper_bgcolor: '#ffffff'
             };
-            const config = { responsive: true };
+
             data.plot_data.forEach(trace => {
-                trace.line = trace.line || {};
-                trace.line.width = 4; // Thicker lines to match bigger fonts
+                trace.line = { width: 4 };
             });
 
-            Plotly.newPlot('chart', data.plot_data, layout, config);
-            }
+            Plotly.newPlot('chart', data.plot_data, layout, { responsive: true });
+        }
     } catch (e) {
         console.error("Simulation failed:", e);
     }

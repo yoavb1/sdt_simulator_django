@@ -1,0 +1,291 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Human-AI Simulation Dashboard</title>
+    <script src="https://cdn.plot.ly/plotly-2.24.1.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-color: #f8fafc;
+            --sidebar-color: #1e293b;
+            --accent-primary: #6366f1;
+            --accent-secondary: #10b981;
+            --text-main: #334155;
+            --card-bg: #ffffff;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            display: flex;
+            margin: 0;
+            background: var(--bg-color);
+            height: 100vh;
+            color: var(--text-main);
+        }
+
+        /* --- Sidebar Style --- */
+        .sidebar {
+            width: 320px;
+            background: var(--sidebar-color);
+            color: white;
+            padding: 30px 25px;
+            display: flex;
+            flex-direction: column;
+            box-shadow: 4px 0 15px rgba(0,0,0,0.05);
+            z-index: 10;
+        }
+
+        .sidebar h2 {
+            font-weight: 600;
+            font-size: 1.4rem;
+            margin-bottom: 30px;
+            letter-spacing: -0.5px;
+            color: #f1f5f9;
+        }
+
+        .control-group { margin-bottom: 25px; }
+
+        label {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.85rem;
+            color: #94a3b8;
+            margin-bottom: 8px;
+            font-weight: 400;
+        }
+
+        label span { color: var(--accent-primary); font-weight: 600; }
+
+        /* --- Custom Inputs --- */
+        input[type="range"] {
+            width: 100%;
+            height: 6px;
+            background: #334155;
+            border-radius: 5px;
+            outline: none;
+            -webkit-appearance: none;
+        }
+
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 18px;
+            height: 18px;
+            background: var(--accent-primary);
+            border-radius: 50%;
+            cursor: pointer;
+            transition: transform 0.2s ease;
+        }
+
+        input[type="range"]::-webkit-slider-thumb:hover { transform: scale(1.2); }
+
+        select {
+            width: 100%;
+            padding: 10px;
+            border-radius: 8px;
+            border: 1px solid #334155;
+            background: #0f172a;
+            color: white;
+            font-size: 0.9rem;
+            margin-top: 5px;
+        }
+
+        /* --- Main Content --- */
+        .main-content {
+            flex: 1;
+            padding: 40px;
+            display: flex;
+            flex-direction: column;
+            gap: 25px;
+            overflow-y: auto;
+        }
+
+        .results-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 25px; }
+
+        .card {
+            background: var(--card-bg);
+            padding: 25px;
+            border-radius: 16px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.03);
+            text-align: center;
+            border: 1px solid rgba(0,0,0,0.02);
+            transition: transform 0.3s ease;
+        }
+
+        .card:hover { transform: translateY(-3px); }
+
+        .card h3 {
+            margin: 0;
+            font-size: 0.85rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: #64748b;
+        }
+
+        .card div {
+            font-size: 2.5rem;
+            font-weight: 600;
+            margin-top: 10px;
+            color: var(--sidebar-color);
+        }
+
+        #plot-area {
+            background: var(--card-bg);
+            border-radius: 16px;
+            flex-grow: 1;
+            min-height: 450px;
+            padding: 20px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.03);
+            border: 1px solid rgba(0,0,0,0.02);
+        }
+
+        /* --- Buttons --- */
+        button {
+            width: 100%;
+            padding: 12px;
+            margin-top: 12px;
+            cursor: pointer;
+            border: none;
+            border-radius: 10px;
+            font-weight: 600;
+            font-size: 0.95rem;
+            transition: all 0.2s ease;
+        }
+
+        .btn-run { background: var(--accent-primary); color: white; }
+        .btn-run:hover { background: #4f46e5; box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3); }
+
+        .btn-plot { background: var(--accent-secondary); color: white; }
+        .btn-plot:hover { background: #059669; box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3); }
+
+        hr { border: 0; border-top: 1px solid #334155; margin: 10px 0; }
+    </style>
+</head>
+<body>
+
+<div class="sidebar">
+    <h2>Simulation Controls</h2>
+
+    <div class="control-group">
+        <label>Automation AUC <span id="auto_v">0.75</span></label>
+        <input type="range" id="auto_auc" min="0.5" max="0.99" step="0.01" value="0.75" oninput="auto_v.innerText=this.value">
+    </div>
+
+    <div class="control-group">
+        <label>Human AUC <span id="human_v">0.75</span></label>
+        <input type="range" id="human_auc" min="0.5" max="0.99" step="0.01" value="0.75" oninput="human_v.innerText=this.value">
+    </div>
+
+    <div class="control-group">
+        <label>LoA (1-10) <span id="loa_v">5</span></label>
+        <input type="range" id="loa" min="1" max="10" step="1" value="5" oninput="loa_v.innerText=this.value">
+    </div>
+
+    <hr>
+
+    <div class="control-group">
+        <label>X-Axis Analysis</label>
+        <select id="param_x">
+            <option value="loa">Level of Automation (LoA)</option>
+            <option value="auto_auc">Automation AUC</option>
+            <option value="human_auc">Human AUC</option>
+        </select>
+        <button class="btn-run" onclick="sendRequest('single')">Single Iteration Run</button>
+        <button class="btn-plot" onclick="sendRequest('2d')">Generate Analytics Plot</button>
+    </div>
+</div>
+
+<div class="main-content">
+    <div class="results-grid" id="metrics">
+        <div class="card"><h3>System Accuracy</h3><div id="acc_res">-</div></div>
+        <div class="card"><h3>Human Workload</h3><div id="wl_res">-</div></div>
+    </div>
+    <div id="plot-area">
+        <div id="chart" style="width:100%;height:100%;"></div>
+    </div>
+</div>
+
+<script>
+async function sendRequest(mode) {
+    const paramX = document.getElementById('param_x').value;
+
+    const labelMap = {
+        'human_auc': 'Human AUC',
+        'auto_auc': 'Automation AUC',
+        'loa': 'Level of Automation (LoA)'
+    };
+
+    const payload = {
+        mode: mode,
+        Ps: 0.5,
+        auto_auc: document.getElementById('auto_auc').value,
+        human_auc: document.getElementById('human_auc').value,
+        loa: document.getElementById('loa').value,
+        param_x: paramX
+    };
+
+    try {
+        const response = await fetch('/run-logic/', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json', 'X-CSRFToken': '{{ csrf_token }}'},
+            body: JSON.stringify(payload)
+        });
+
+        const data = await response.json();
+
+        if (mode === 'single') {
+            document.getElementById('acc_res').innerText = (data.results.accuracy * 100).toFixed(1) + "%";
+            document.getElementById('wl_res').innerText = (data.results.workload * 100).toFixed(1) + "%";
+        } else {
+            const layout = {
+                title: {
+                    text: `Accuracy/Workload Depend on ${labelMap[paramX]}`,
+                    font: {
+                    family: 'Inter, sans-serif',
+                    size: 28, // Increased from 18
+                    color: '#1e293b'
+                }
+                },
+                xaxis: {
+                title: {
+                    text: labelMap[paramX],
+                    font: { size: 20, color: '#334155', weight: 'bold' } // Larger Axis Label
+                },
+                tickfont: { size: 16 }, // Larger numbers on axis
+                gridcolor: '#f1f5f9',
+                zeroline: false
+                },
+                yaxis: {
+                title: {
+                    text: 'Rate',
+                    font: { size: 20, color: '#334155', weight: 'bold' } // Larger Axis Label
+                },
+                tickfont: { size: 16 }, // Larger numbers on axis
+                range: [0, 1.05],
+                gridcolor: '#f1f5f9',
+                zeroline: false
+                 },
+                legend: {
+                orientation: 'h',
+                y: -0.2,
+                font: { size: 18 } // Larger legend text
+                },
+                margin: { t: 60, b: 80, l: 60, r: 40 },
+                plot_bgcolor: '#ffffff',
+                paper_bgcolor: '#ffffff'
+            };
+            const config = { responsive: true };
+            data.plot_data.forEach(trace => {
+                trace.line = trace.line || {};
+                trace.line.width = 4; // Thicker lines to match bigger fonts
+            });
+
+            Plotly.newPlot('chart', data.plot_data, layout, config);
+            }
+    } catch (e) {
+        console.error("Simulation failed:", e);
+    }
+}
+</script>
+</body>
+</html>
