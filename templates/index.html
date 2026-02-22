@@ -171,8 +171,10 @@
 
     <div class="lower-panel">
         <div class="results-grid">
-            <div class="card"><h3>Total System Accuracy</h3><div id="acc_res">-</div></div>
-            <div class="card"><h3>Total Human Workload</h3><div id="wl_res">-</div></div>
+            <div class="card"><h3>Total Accuracy</h3><div id="acc_res">-</div></div>
+            <div class="card"><h3>Total Workload</h3><div id="wl_total_res">-</div></div>
+            <div class="card"><h3>Analysis WL</h3><div id="wl2_res">-</div></div>
+            <div class="card"><h3>Selection WL</h3><div id="wl3_res">-</div></div>
         </div>
         <div id="plot-area">
             <div id="chart" style="width:100%;height:100%;"></div>
@@ -212,8 +214,19 @@ async function sendRequest(mode) {
         const data = await response.json();
 
         if (mode === 'single') {
-            document.getElementById('acc_res').innerText = (data.results.accuracy * 100).toFixed(1) + "%";
-            document.getElementById('wl_res').innerText = (data.results.workload * 100).toFixed(1) + "%";
+            // Note: use the exact keys with spaces from your views.py results_obj
+            const wl2 = data.results['workload stage 2'];
+            const wl3 = data.results['workload stage 3'];
+            const acc = data.results['accuracy'];
+
+            // Calculate total average workload for the main display
+            const totalWl = (wl2 + wl3) / 2;
+
+            document.getElementById('acc_res').innerText = (acc * 100).toFixed(1) + "%";
+            document.getElementById('wl_total_res').innerText = (totalWl * 100).toFixed(1) + "%";
+
+            document.getElementById('wl2_res').innerText = (wl2 * 100).toFixed(1) + "%";
+            document.getElementById('wl3_res').innerText = (wl3 * 100).toFixed(1) + "%";
         } else {
             const layout = {
                 title: {

@@ -40,6 +40,7 @@ class Payoffs:
 @dataclass
 class OutcomeVariables:
     """Workload, Accuracy"""
-    workload: float
+    workload_stage_2: float
+    workload_stage_3: float
     accuracy: float
 

@@ -73,7 +73,9 @@ def run_logic(request):
         if mode == 'single':
             # Run simulation with the specific LoAs for each stage
             results = run_simulation(iterations, loa_2, loa_3, ps, sys_d, h_d, 0.8, 0.5)
-            results_obj = {'workload': results.workload, 'accuracy': results.accuracy}
+            results_obj = {'workload stage 2': results.workload_stage_2,
+                           'workload stage 3': results.workload_stage_3,
+                           'accuracy': results.accuracy}
             return JsonResponse({'status': 'success', 'results': results_obj})
 
         elif mode == '2d':
@@ -86,7 +88,8 @@ def run_logic(request):
                 x_values = np.linspace(0.5, 0.99, 10).tolist()
 
             acc_list = []
-            wl_list = []
+            wl2_list = []
+            wl3_list = []
 
             for x in x_values:
                 # 3. Parameter Switching Logic
@@ -109,11 +112,14 @@ def run_logic(request):
                     0.5  # human_threshold
                 )
                 acc_list.append(res.accuracy)
-                wl_list.append(res.workload)
+                wl2_list.append(res.workload_stage_2)
+                wl3_list.append(res.workload_stage_3)
 
             plot_data = [
                 {'x': x_values, 'y': acc_list, 'name': 'Accuracy', 'line': {'color': '#3498db'}},
-                {'x': x_values, 'y': wl_list, 'name': 'Workload', 'line': {'color': '#e67e22'}}
+                {'x': x_values, 'y': wl2_list, 'name': 'Analysis Workload',
+                 'line': {'color': '#e67e22', 'dash': 'dot'}},
+                {'x': x_values, 'y': wl3_list, 'name': 'Selection Workload', 'line': {'color': '#d35400'}}
             ]
             return JsonResponse({'status': 'success', 'plot_data': plot_data})
 

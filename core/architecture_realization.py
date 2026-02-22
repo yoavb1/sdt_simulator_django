@@ -74,7 +74,7 @@ def run_simulation(
         human_threshold: float = 0.4
 ) -> OutcomeVariables:
 
-    wl = 0
+    wl_2, wl_3 = 0, 0
     acc = 0
     LoA_2 = from_LoA_to_thresholds(level_of_automation_stage_2)
     LoA_3 = from_LoA_to_thresholds(level_of_automation_stage_3)
@@ -97,7 +97,7 @@ def run_simulation(
             uncertain_2 = (LoA_2.low_threshold <= system_posterior <= LoA_2.high_threshold)
 
         if uncertain_2:
-            wl += 1
+            wl_2 += 1
             # Human fuser improves the data
             fused_posterior = compute_combined_posterior(human_info, h_d / 2, -h_d / 2, 1, system_posterior)
         else:
@@ -109,7 +109,7 @@ def run_simulation(
             uncertain_3 = (LoA_3.low_threshold <= fused_posterior <= LoA_3.high_threshold)
 
         if uncertain_3:
-            wl += 1
+            wl_3 += 1
             # Human makes the final decision
             state = 'S' if fused_posterior > human_threshold else 'N'
         else:
@@ -119,5 +119,6 @@ def run_simulation(
         if state == signal_or_noise:
             acc += 1
 
-    return OutcomeVariables(workload=round(wl / (number_of_iterations*2), 2),
+    return OutcomeVariables(workload_stage_2=round(wl_2 / number_of_iterations, 2),
+                            workload_stage_3=round(wl_3 / number_of_iterations, 2),
                             accuracy=round(acc / (number_of_iterations), 2))
