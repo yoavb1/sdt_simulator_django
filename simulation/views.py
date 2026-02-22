@@ -72,7 +72,7 @@ def run_logic(request):
 
         if mode == 'single':
             # Run simulation with the specific LoAs for each stage
-            results = run_simulation(iterations, loa_2, loa_3, ps, sys_d, h_d, 0.5, 0.4)
+            results = run_simulation(iterations, loa_2, loa_3, ps, sys_d, h_d, 0.8, 0.5)
             results_obj = {'workload': results.workload, 'accuracy': results.accuracy}
             return JsonResponse({'status': 'success', 'results': results_obj})
 
@@ -105,8 +105,8 @@ def run_logic(request):
                     ps,
                     auc_to_dprime(curr_sys_auc),
                     auc_to_dprime(curr_hum_auc),
-                    0.5,  # automation_threshold
-                    0.4  # human_threshold
+                    0.8,  # automation_threshold
+                    0.5  # human_threshold
                 )
                 acc_list.append(res.accuracy)
                 wl_list.append(res.workload)
