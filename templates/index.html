@@ -2,391 +2,290 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>EV Command Center | Signal Detection</title>
+    <title>Human-AI Simulation Dashboard</title>
     <script src="https://cdn.plot.ly/plotly-2.24.1.min.js"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;800&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600&display=swap" rel="stylesheet">
     <style>
         :root {
-            --accent: #6366f1; --sidebar-bg: #0f172a; --border: #e2e8f0; --text-main: #1e293b;
-            --node-dark: #121320; --accent-blue: #3b82f6; --meter-bg: #1e293b;
+            --bg-color: #f8fafc;
+            --sidebar-color: #1e293b;
+            --accent-primary: #6366f1;
+            --accent-secondary: #10b981;
+            --text-main: #334155;
+            --card-bg: #ffffff;
         }
-        body { margin: 0; font-family: 'Plus Jakarta Sans', sans-serif; background: #f8fafc; display: flex; height: 100vh; overflow: hidden; }
 
-        /* SIDEBAR */
-        .sidebar { width: 340px; background: var(--sidebar-bg); color: white; display: flex; flex-direction: column; z-index: 100; box-shadow: 5px 0 15px rgba(0,0,0,0.1); }
-        .sidebar-header { padding: 25px; border-bottom: 1px solid rgba(255,255,255,0.1); }
-        .sidebar-header h1 { font-size: 1.1rem; margin: 0; font-weight: 800; letter-spacing: 1px; }
-        .sidebar-content { padding: 20px; overflow-y: auto; flex-grow: 1; }
-        .section-label { font-size: 0.7rem; font-weight: 800; color: #64748b; text-transform: uppercase; margin: 20px 0 10px; display: block; }
-        .glass-card { background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); border-radius: 12px; padding: 15px; margin-bottom: 15px; }
-        .input-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 10px; }
-        label { font-size: 0.7rem; color: #94a3b8; display: block; margin-bottom: 4px; }
-        input[type="number"], select { width: 100%; background: #1e293b; border: 1px solid #334155; color: white; padding: 8px; border-radius: 6px; box-sizing: border-box; }
-        input[type="range"] { width: 100%; accent-color: var(--accent); cursor: pointer; }
-        .val-badge { float: right; color: var(--accent); font-weight: 800; font-family: monospace; }
-        .btn { width: 100%; padding: 12px; border: none; border-radius: 8px; font-weight: 700; cursor: pointer; margin-bottom: 8px; transition: 0.2s; }
-        .btn-primary { background: var(--accent); color: white; }
-        .btn-outline { background: transparent; border: 1px solid #334155; color: #94a3b8; }
+        body {
+            font-family: 'Inter', sans-serif;
+            display: flex;
+            margin: 0;
+            background: var(--bg-color);
+            height: 100vh;
+            color: var(--text-main);
+        }
 
-        /* MAIN LAYOUT */
-        .main-content { flex: 1; display: flex; flex-direction: column; height: 100vh; }
-        .stage { height: 80%; background: #ffffff; display: flex; align-items: center; justify-content: center; border-bottom: 1px solid var(--border); position: relative; min-height: 0; }
-        .analytics-panel { height: 60%; background: #ffffff; padding: 20px; display: flex; flex-direction: column; border-top: 2px solid #e2e8f0; }
+        /* --- Sidebar Style --- */
+        .sidebar {
+            width: 320px;
+            background: var(--sidebar-color);
+            color: white;
+            padding: 30px 25px;
+            display: flex;
+            flex-direction: column;
+            box-shadow: 4px 0 15px rgba(0,0,0,0.05);
+            z-index: 10;
+        }
 
-        /* DIAGRAM NODES */
-        .diagram-viewport { position: relative; width: 95%; height: 90%; display: grid; grid-template-columns: 1fr 1.2fr 1fr 1fr; align-items: center; justify-items: center; z-index: 2; }
-        .node-col { display: flex; flex-direction: column; gap: 20px; align-items: center; z-index: 5; }
-        .node { background: var(--node-dark); border: 2px solid var(--accent-blue); border-radius: 8px; padding: 12px; color: white; text-align: center; width: 160px; box-shadow: 0 8px 20px rgba(0,0,0,0.2); position: relative;}
-        .node-system { height: 160px; display: flex; align-items: center; justify-content: center; font-size: 1.1rem; font-weight: 800; }
-        .node-human { background: #1e1e2e; border: 1px solid #64748b; width: 100px; height: 60px; display: flex; align-items: center; justify-content: center; font-size: 0.8rem; font-weight: 600; }
-        .node-output { border-radius: 50%; width: 110px; height: 90px; background: radial-gradient(circle, #1a1b2e 0%, #050505 100%); display: flex; align-items: center; justify-content: center; font-weight: 800; text-transform: uppercase; font-size: 0.9rem; }
+        .sidebar h2 {
+            font-weight: 600;
+            font-size: 1.4rem;
+            margin-bottom: 30px;
+            letter-spacing: -0.5px;
+            color: #f1f5f9;
+        }
 
-        /* METERS */
-        .sensor-node { display: flex; flex-direction: row; align-items: center; gap: 12px; }
-        .meter-container { width: 16px; height: 70px; background: #1e293b; border-radius: 8px; border: 2px solid #334155; position: relative; overflow: hidden; flex-shrink: 0;}
-        .meter-fill { position: absolute; bottom: 0; width: 100%; transition: height 0.3s ease; }
-        .temp-fill { background: linear-gradient(to top, #ef4444, #f87171); }
-        .humid-fill { background: linear-gradient(to top, #3b82f6, #60a5fa); }
-        .sensor-controls { flex: 1; text-align: left; }
-        .slider-label-small { font-size: 0.65rem; color: #94a3b8; display: block; margin-top: 4px; }
+        .control-group { margin-bottom: 25px; }
 
-        /* CONNECTORS */
-        .connector-svg { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 1; }
-        .connector-svg path { stroke: #cbd5e1; stroke-width: 2; fill: none; opacity: 0.7; }
+        label {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.85rem;
+            color: #94a3b8;
+            margin-bottom: 8px;
+            font-weight: 400;
+        }
 
-        /* ANALYTICS */
-        #plot-container { flex: 1; width: 100%; min-height: 0; }
-        #results-display { height: 100%; overflow-y: auto; }
-        .results-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 15px; }
-        .stat-card { background: #1a1f2e; padding: 15px; border-radius: 10px; border: 1px solid #334155; color: white; }
-        .stat-val { font-size: 1.2rem; font-weight: 800; color: #818cf8; }
+        label span { color: var(--accent-primary); font-weight: 600; }
+
+        /* --- Custom Inputs --- */
+        input[type="range"] {
+            width: 100%;
+            height: 6px;
+            background: #334155;
+            border-radius: 5px;
+            outline: none;
+            -webkit-appearance: none;
+        }
+
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 18px;
+            height: 18px;
+            background: var(--accent-primary);
+            border-radius: 50%;
+            cursor: pointer;
+            transition: transform 0.2s ease;
+        }
+
+        input[type="range"]::-webkit-slider-thumb:hover { transform: scale(1.2); }
+
+        select {
+            width: 100%;
+            padding: 10px;
+            border-radius: 8px;
+            border: 1px solid #334155;
+            background: #0f172a;
+            color: white;
+            font-size: 0.9rem;
+            margin-top: 5px;
+        }
+
+        /* --- Main Content --- */
+        .main-content {
+            flex: 1;
+            padding: 40px;
+            display: flex;
+            flex-direction: column;
+            gap: 25px;
+            overflow-y: auto;
+        }
+
+        .results-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 25px; }
+
+        .card {
+            background: var(--card-bg);
+            padding: 25px;
+            border-radius: 16px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.03);
+            text-align: center;
+            border: 1px solid rgba(0,0,0,0.02);
+            transition: transform 0.3s ease;
+        }
+
+        .card:hover { transform: translateY(-3px); }
+
+        .card h3 {
+            margin: 0;
+            font-size: 0.85rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: #64748b;
+        }
+
+        .card div {
+            font-size: 2.5rem;
+            font-weight: 600;
+            margin-top: 10px;
+            color: var(--sidebar-color);
+        }
+
+        #plot-area {
+            background: var(--card-bg);
+            border-radius: 16px;
+            flex-grow: 1;
+            min-height: 450px;
+            padding: 20px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.03);
+            border: 1px solid rgba(0,0,0,0.02);
+        }
+
+        /* --- Buttons --- */
+        button {
+            width: 100%;
+            padding: 12px;
+            margin-top: 12px;
+            cursor: pointer;
+            border: none;
+            border-radius: 10px;
+            font-weight: 600;
+            font-size: 0.95rem;
+            transition: all 0.2s ease;
+        }
+
+        .btn-run { background: var(--accent-primary); color: white; }
+        .btn-run:hover { background: #4f46e5; box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3); }
+
+        .btn-plot { background: var(--accent-secondary); color: white; }
+        .btn-plot:hover { background: #059669; box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3); }
+
+        hr { border: 0; border-top: 1px solid #334155; margin: 10px 0; }
     </style>
 </head>
 <body>
 
-    <aside class="sidebar">
-        <div class="sidebar-header"><h1>SYSTEM COMMAND</h1></div>
-        <div class="sidebar-content">
-            <span class="section-label">Environment</span>
-            <div class="glass-card">
-                <label>Probability to Failure<span class="val-badge" id="Ps_val">0.20</span></label>
-                <input type="range" id="Ps" min="0.1" max="0.9" step="0.01" value="0.2">
-            </div>
+<div class="sidebar">
+    <h2>Simulation Controls</h2>
 
-            <span class="section-label">Economic Model</span>
-            <div class="glass-card">
-                <div class="input-row">
-                    <div><label>Hit (TP)</label><input type="number" id="v_tp" value="1"></div>
-                    <div><label>Miss (FN)</label><input type="number" id="v_fn" value="-1"></div>
-                </div>
-                <div class="input-row">
-                    <div><label>False Alarm (FP)</label><input type="number" id="v_fp" value="-1"></div>
-                    <div><label>Corr. Reject (TN)</label><input type="number" id="v_tn" value="1"></div>
-                </div>
-                <div class="input-row">
-                    <div><label>AI 1 Cost</label><input type="number" id="c_ai1" value="0"></div>
-                    <div><label>AI 2 Cost</label><input type="number" id="c_ai2" value="0"></div>
-                </div>
-            </div>
+    <div class="control-group">
+        <label>Automation AUC <span id="auto_v">0.75</span></label>
+        <input type="range" id="auto_auc" min="0.5" max="0.99" step="0.01" value="0.75" oninput="auto_v.innerText=this.value">
+    </div>
 
-            <span class="section-label">Analysis View</span>
-            <div class="glass-card">
-                <label>X-Axis Parameter</label>
-                <select id="param-x">
-                    <option value="source_1_sensitivity" selected>Temperature (AUC)</option>
-                    <option value="source_2_sensitivity">Humidity (AUC)</option>
-                    <option value="Ps">Probability to Failure</option>
-                    <option value="DSS1_sensitivity">AI 1 (AUC)</option>
-                    <option value="DSS2_sensitivity">AI 2 (AUC)</option>
-                </select>
-                <label style="margin-top:10px;">Y-Axis (3D Only)</label>
-                <select id="param-y">
-                    <option value="source_1_sensitivity">Temperature (AUC)</option>
-                    <option value="source_2_sensitivity" selected>Humidity (AUC)</option>
-                    <option value="Ps">Probability to Failure</option>
-                </select>
-                <div style="margin-top:15px;">
-                    <button class="btn btn-primary" onclick="runAnalysis('single')">Simulate Current</button>
-                    <button class="btn btn-outline" onclick="runAnalysis('2d')">2D Sensitivity</button>
-                    <button class="btn btn-outline" onclick="runAnalysis('3d')">3D Surface</button>
-                </div>
-            </div>
-        </div>
-    </aside>
+    <div class="control-group">
+        <label>Human AUC <span id="human_v">0.75</span></label>
+        <input type="range" id="human_auc" min="0.5" max="0.99" step="0.01" value="0.75" oninput="human_v.innerText=this.value">
+    </div>
 
-    <main class="main-content">
-        <section class="stage" id="stage-area">
-            <svg class="connector-svg" id="svg-canvas">
-                <defs>
-                    <marker id="arr" markerWidth="8" markerHeight="8" refX="8" refY="4" orient="auto">
-                        <polygon points="0 0, 8 4, 0 8" fill="#cbd5e1"/>
-                    </marker>
-                </defs>
-                </svg>
+    <div class="control-group">
+        <label>LoA (1-10) <span id="loa_v">5</span></label>
+        <input type="range" id="loa" min="1" max="10" step="1" value="5" oninput="loa_v.innerText=this.value">
+    </div>
 
-            <div class="diagram-viewport">
-                <div class="node-col">
-                    <div class="node node-system" id="node-system">SYSTEM</div>
-                </div>
+    <hr>
 
-                <div class="node-col">
-                    <div class="node sensor-node" id="node-temp">
-                        <div class="meter-container"><div id="temp_bar" class="meter-fill temp-fill"></div></div>
-                        <div class="sensor-controls">
-                            <span style="font-size:1rem; color:#f87171; font-weight:800;">Temperature AUC</span>
-                            <input type="range" id="temp" min="0.55" max="1" step="0.01" value="0.75">
-                            <span class="slider-label-small">Value: <span id="temp_val">0.75</span></span>
-                        </div>
-                    </div>
-                    <div class="node sensor-node" id="node-humidity">
-                        <div class="meter-container"><div id="humidity_bar" class="meter-fill humid-fill"></div></div>
-                        <div class="sensor-controls">
-                            <span style="font-size:1rem; color:#60a5fa; font-weight:800;">Humidity AUC</span>
-                            <input type="range" id="humidity" min="0.55" max="1" step="0.01" value="0.75">
-                            <span class="slider-label-small">Value: <span id="humidity_val">0.75</span></span>
-                        </div>
-                    </div>
-                </div>
+    <div class="control-group">
+        <label>X-Axis Analysis</label>
+        <select id="param_x">
+            <option value="loa">Level of Automation (LoA)</option>
+            <option value="auto_auc">Automation AUC</option>
+            <option value="human_auc">Human AUC</option>
+        </select>
+        <button class="btn-run" onclick="sendRequest('single')">Single Iteration Run</button>
+        <button class="btn-plot" onclick="sendRequest('2d')">Generate Analytics Plot</button>
+    </div>
+</div>
 
-                <div class="node-col">
-                    <div class="node" id="node-ai1" style="height: 40px; border-color: var(--accent);">
-                        AI 1 AUC: <span id="ai1_val">0.5</span>
-                        <input type="range" id="ai1" min="0.55" max="1" step="0.01" value="0.75">
-                    </div>
+<div class="main-content">
+    <div class="results-grid" id="metrics">
+        <div class="card"><h3>System Accuracy</h3><div id="acc_res">-</div></div>
+        <div class="card"><h3>Human Workload</h3><div id="wl_res">-</div></div>
+    </div>
+    <div id="plot-area">
+        <div id="chart" style="width:100%;height:100%;"></div>
+    </div>
+</div>
 
-                    <div class="node node-human" id="node-human">HUMAN</div>
+<script>
+async function sendRequest(mode) {
+    const paramX = document.getElementById('param_x').value;
 
-                    <div class="node" id="node-ai2" style="height: 40px; border-color: var(--accent);">
-                            AI 2 AUC: <span id="ai2_val">0.5</span>
-                            <input type="range" id="ai2" min="0.55" max="1" step="0.01" value="0.75">
-                        </div>
-                </div>
-
-                <div class="node-col">
-                    <div class="node node-output" id="node-output">OUTPUT</div>
-                </div>
-            </div>
-        </section>
-
-        <section class="analytics-panel">
-            <div id="results-display" style="display:none">
-                <div class="results-grid" id="results-container"></div>
-            </div>
-            <div id="plot-container">
-                <div id="plotly-chart" style="height: 100%; width: 100%;"></div>
-            </div>
-        </section>
-    </main>
-    <script>
-        const labelMap = {
-            'Ps': 'Probability to Failure',
-            'source_1_sensitivity': 'Temperature AUC',
-            'source_2_sensitivity': 'Humidity AUC',
-            'DSS1_sensitivity': 'AI 1 AUC',
-            'DSS2_sensitivity': 'AI 2 AUC'
-        };
-
-        // --- ARROW LOGIC START ---
-        function drawLine(startId, endId) {
-            const startEl = document.getElementById(startId);
-            const endEl = document.getElementById(endId);
-            const svg = document.getElementById('svg-canvas');
-            const stage = document.getElementById('stage-area').getBoundingClientRect();
-
-            const start = startEl.getBoundingClientRect();
-            const end = endEl.getBoundingClientRect();
-
-            // Calculate relative coordinates
-            const x1 = start.right - stage.left;
-            const y1 = start.top + (start.height / 2) - stage.top;
-            const x2 = end.left - stage.left;
-            const y2 = end.top + (end.height / 2) - stage.top;
-
-            const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
-            const cp = x1 + (x2 - x1) / 2; // Control point for curve
-
-            path.setAttribute("d", `M ${x1} ${y1} C ${cp} ${y1}, ${cp} ${y2}, ${x2} ${y2}`);
-            path.setAttribute("marker-end", "url(#arr)");
-            svg.appendChild(path);
-        }
-
-        function updateConnectors() {
-            const svg = document.getElementById('svg-canvas');
-            // Clear existing lines but keep defs
-            const defs = svg.querySelector('defs');
-            svg.innerHTML = '';
-            svg.appendChild(defs);
-
-            // System to Sensors
-            drawLine('node-system', 'node-temp');
-            drawLine('node-system', 'node-humidity');
-
-            // Sensors to AI/Human
-            drawLine('node-temp', 'node-ai1');
-            drawLine('node-temp', 'node-human');
-            drawLine('node-humidity', 'node-human');
-            drawLine('node-humidity', 'node-ai2');
-
-            // Feedback / Consensus
-            drawLine('node-ai1', 'node-human');
-            drawLine('node-ai2', 'node-human');
-
-            // To Output
-            drawLine('node-ai1', 'node-output');
-            drawLine('node-human', 'node-output');
-            drawLine('node-ai2', 'node-output');
-        }
-
-        // Listen for window resize
-        window.addEventListener('resize', updateConnectors);
-        // Initial draw
-        setTimeout(updateConnectors, 100);
-        // --- ARROW LOGIC END ---
-
-        function syncUI() {
-            const tempVal = document.getElementById('temp').value;
-            const humidVal = document.getElementById('humidity').value;
-            const psVal = document.getElementById('Ps').value;
-            const ai1Val = document.getElementById('ai1').value;
-            const ai2Val = document.getElementById('ai2').value;
-
-            document.getElementById('temp_val').innerText = tempVal;
-            document.getElementById('temp_bar').style.height = ((parseFloat(tempVal) - 0.5) * 200) + '%';
-            document.getElementById('humidity_val').innerText = humidVal;
-            document.getElementById('humidity_bar').style.height = ((parseFloat(humidVal) - 0.5) * 200) + '%';
-            document.getElementById('Ps_val').innerText = psVal;
-            document.getElementById('ai1_val').innerText = ai1Val;
-            document.getElementById('ai2_val').innerText = ai2Val;
-        }
-
-        document.querySelectorAll('input[type="range"]').forEach(el => el.oninput = syncUI);
-
-        async function runAnalysis(mode) {
-            const payload = {
-                mode: mode,
-                Ps: document.getElementById('Ps').value,
-                temperature: document.getElementById('temp').value,
-                humidity: document.getElementById('humidity').value,
-                ai1: document.getElementById('ai1').value,
-                ai2: document.getElementById('ai2').value,
-                param_x: document.getElementById('param-x').value,
-                param_y: document.getElementById('param-y').value,
-                v_tp: document.getElementById('v_tp').value,
-                v_fn: document.getElementById('v_fn').value,
-                v_fp: document.getElementById('v_fp').value,
-                v_tn: document.getElementById('v_tn').value,
-                c_ai1: document.getElementById('c_ai1').value,
-                c_ai2: document.getElementById('c_ai2').value
-            };
-
-            try {
-                const response = await fetch('/run-logic/', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'X-CSRFToken': '{{ csrf_token }}'
-                    },
-                    body: JSON.stringify(payload)
-                });
-
-                const data = await response.json();
-
-                if (data.status === 'success') {
-                    const resDiv = document.getElementById('results-display');
-                    const plotDiv = document.getElementById('plot-container');
-
-                    if (mode === 'single') {
-                        resDiv.style.display = 'block';
-                        plotDiv.style.display = 'none';
-                        renderResults(data.results);
-                    } else {
-                        resDiv.style.display = 'none';
-                        plotDiv.style.display = 'block';
-                        if (mode === '2d') render2D(data.plot_data, payload.param_x);
-                        else render3D(data.plot_data, payload.param_x, payload.param_y);
-                    }
-                } else {
-                    alert("Error: " + data.message);
-                }
-            } catch (err) {
-                alert("Could not connect to Python backend.");
-            }
-        }
-
-function renderResults(results) {
-    const container = document.getElementById('results-container');
-    container.innerHTML = '';
-
-    // 1. Explicit mapping for your specific dictionary keys
-    const customLabels = {
-        'auc_human_alone': 'Human Only AUC',
-        'auc_human_ai_1': 'Human + AI 1 AUC',
-        'auc_human_ai_2': 'Human + AI 2 AUC',
-        'auc_human_two_ai': 'Full System AUC',
-        'human_alone': 'Human Only EV',
-        'human_ai_1': 'Human + AI 1 EV',
-        'human_ai_2': 'Human + AI 2 EV',
-        'human_two_ai': 'Full System EV'
+    const labelMap = {
+        'human_auc': 'Human AUC',
+        'auto_auc': 'Automation AUC',
+        'loa': 'Level of Automation (LoA)'
     };
 
-    // 2. Filter keys based on your dictionary structure
-    // Group 1: Keys starting with 'auc'
-    const aucKeys = ['auc_human_alone', 'auc_human_ai_1', 'auc_human_ai_2', 'auc_human_two_ai'];
-    // Group 2: Keys that are just the EV (human_alone, etc.)
-    const evKeys = ['human_alone', 'human_ai_1', 'human_ai_2', 'human_two_ai'];
+    const payload = {
+        mode: mode,
+        Ps: 0.5,
+        auto_auc: document.getElementById('auto_auc').value,
+        human_auc: document.getElementById('human_auc').value,
+        loa: document.getElementById('loa').value,
+        param_x: paramX
+    };
 
-    // Helper to render a labeled row
-    const renderRow = (title, keys) => {
-        let html = `<div style="grid-column: 1/-1; margin-top: 20px; margin-bottom: 10px;">
-                        <span class="section-label" style="color: var(--accent); border-bottom: 1px solid #334155; display: block; padding-bottom: 5px;">${title}</span>
-                    </div>`;
-
-        keys.forEach(key => {
-            const val = results[key];
-            if (val !== undefined) {
-                const displayName = customLabels[key] || key.replace(/_/g, ' ');
-                html += `
-                    <div class="stat-card">
-                        <span style="font-size:0.7rem; color:#94a3b8; text-transform:uppercase;">${displayName}</span><br>
-                        <span class="stat-val">${typeof val === 'number' ? val.toFixed(4) : val}</span>
-                    </div>`;
-            }
+    try {
+        const response = await fetch('/run-logic/', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json', 'X-CSRFToken': '{{ csrf_token }}'},
+            body: JSON.stringify(payload)
         });
-        return html;
-    };
 
-    // 3. Output the two rows
-    container.innerHTML += renderRow('Sensitivity Performance (AUC)', aucKeys);
-    container.innerHTML += renderRow('Economic Performance (Expected Value)', evKeys);
-}
+        const data = await response.json();
 
-        function render2D(plotData, xKey) {
-            Plotly.react('plotly-chart', plotData, {
-                title: 'Sensitivity Analysis',
-                xaxis: { title: labelMap[xKey] || xKey },
-                yaxis: { title: 'Expected Value' },
-                paper_bgcolor: 'rgba(0,0,0,0)',
-                plot_bgcolor: 'rgba(0,0,0,0)',
-                font: { color: '#1e293b' }
-            });
-        }
-
-        function render3D(plotData, xKey, yKey) {
-            Plotly.react('plotly-chart', [{
-                z: plotData.z, x: plotData.x, y: plotData.y,
-                type: 'surface', colorscale: 'Viridis'
-            }], {
-                scene: {
-                    xaxis: {title: labelMap[xKey] || xKey},
-                    yaxis: {title: labelMap[yKey] || yKey},
-                    zaxis: {title: 'EV'}
+        if (mode === 'single') {
+            document.getElementById('acc_res').innerText = (data.results.accuracy * 100).toFixed(1) + "%";
+            document.getElementById('wl_res').innerText = (data.results.workload * 100).toFixed(1) + "%";
+        } else {
+            const layout = {
+                title: {
+                    text: `Accuracy/Workload Depend on ${labelMap[paramX]}`,
+                    font: {
+                    family: 'Inter, sans-serif',
+                    size: 28, // Increased from 18
+                    color: '#1e293b'
+                }
                 },
-                margin: { t: 0, b: 0, l: 0, r: 0 }
+                xaxis: {
+                title: {
+                    text: labelMap[paramX],
+                    font: { size: 20, color: '#334155', weight: 'bold' } // Larger Axis Label
+                },
+                tickfont: { size: 16 }, // Larger numbers on axis
+                gridcolor: '#f1f5f9',
+                zeroline: false
+                },
+                yaxis: {
+                title: {
+                    text: 'Rate',
+                    font: { size: 20, color: '#334155', weight: 'bold' } // Larger Axis Label
+                },
+                tickfont: { size: 16 }, // Larger numbers on axis
+                range: [0, 1.05],
+                gridcolor: '#f1f5f9',
+                zeroline: false
+                 },
+                legend: {
+                orientation: 'h',
+                y: -0.2,
+                font: { size: 18 } // Larger legend text
+                },
+                margin: { t: 60, b: 80, l: 60, r: 40 },
+                plot_bgcolor: '#ffffff',
+                paper_bgcolor: '#ffffff'
+            };
+            const config = { responsive: true };
+            data.plot_data.forEach(trace => {
+                trace.line = trace.line || {};
+                trace.line.width = 4; // Thicker lines to match bigger fonts
             });
-        }
 
-        syncUI();
-    </script>
+            Plotly.newPlot('chart', data.plot_data, layout, config);
+            }
+    } catch (e) {
+        console.error("Simulation failed:", e);
+    }
+}
+</script>
 </body>
 </html>
