@@ -249,7 +249,14 @@ async function sendRequest(mode) {
                     gridcolor: '#f1f5f9',
                     zeroline: false
                 },
-                legend: { orientation: 'h', y: -0.2, font: { size: 16 } },
+                legend: {
+                        orientation: 'h',
+                        y: -0.3,
+                        x: 0.5,
+                        xanchor: 'center',
+                        yanchor: 'top',
+                        font: { size: 16 }
+                    },
                 margin: { t: 80, b: 100, l: 80, r: 40 },
                 plot_bgcolor: '#ffffff',
                 paper_bgcolor: '#ffffff'
