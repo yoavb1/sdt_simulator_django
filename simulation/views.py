@@ -108,8 +108,8 @@ def run_logic(request):
                     ps,
                     auc_to_dprime(curr_sys_auc),
                     auc_to_dprime(curr_hum_auc),
-                    0.8,  # automation_threshold
-                    0.5  # human_threshold
+                    0.7,  # automation_threshold
+                    0.4  # human_threshold
                 )
                 acc_list.append(res.accuracy)
                 wl2_list.append(res.workload_stage_2)

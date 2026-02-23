@@ -71,7 +71,7 @@ def run_simulation(
         sys_d: float,
         h_d: float,
         automation_threshold: float = 0.5,
-        human_threshold: float = 0.4
+        human_threshold: float = 0.5
 ) -> OutcomeVariables:
 
     wl_2, wl_3 = 0, 0
@@ -99,7 +99,10 @@ def run_simulation(
         if uncertain_2:
             wl_2 += 1
             # Human fuser improves the data
-            fused_posterior = compute_combined_posterior(human_info, h_d / 2, -h_d / 2, 1, system_posterior)
+            if LoA_2.level <= 1:
+                fused_posterior = compute_combined_posterior(human_info, h_d / 2, -h_d / 2, 1, prior)
+            else:
+                fused_posterior = compute_combined_posterior(human_info, h_d / 2, -h_d / 2, 1, system_posterior)
         else:
             # AI handles analysis alone
             fused_posterior = system_posterior
