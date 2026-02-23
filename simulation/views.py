@@ -68,7 +68,7 @@ def run_logic(request):
         sys_d = auc_to_dprime(sys_auc_base)
         h_d = auc_to_dprime(hum_auc_base)
 
-        iterations = 2000
+        iterations = 10000
 
         if mode == 'single':
             # Run simulation with the specific LoAs for each stage

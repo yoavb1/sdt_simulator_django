@@ -9,8 +9,8 @@
         :root {
             --bg-color: #f8fafc;
             --sidebar-color: #1e293b;
-            --accent-primary: #6366f1;
-            --accent-secondary: #10b981;
+            --accent-primary: #606198;
+            --accent-secondary: #58b697;
             --text-main: #334155;
             --card-bg: #ffffff;
             --stage-bg: #f1f5f9;
@@ -107,6 +107,7 @@
         .btn-run { background: var(--accent-primary); color: white; }
         .btn-plot { background: var(--accent-secondary); color: white; }
 
+
         /* Small sliders for stages */
         .stage-slider { width: 80% !important; margin-top: 5px; }
         .stage-val { font-size: 0.9rem; font-weight: bold; color: var(--accent-primary); }
@@ -126,6 +127,8 @@
         <label>Human AUC <span id="human_v">0.75</span></label>
         <input type="range" id="human_auc" min="0.5" max="0.99" step="0.01" value="0.75" oninput="human_v.innerText=this.value">
     </div>
+
+    <button class="btn-plot" style="background: var(--accent-primary); margin-top: 5px;" onclick="plotLoALogic()">LoA Mapping Graph</button>
 
     <hr style="border-top: 1px solid #334155; margin-bottom:20px;">
 
@@ -261,6 +264,37 @@ async function sendRequest(mode) {
     } catch (e) {
         console.error("Simulation failed:", e);
     }
+}
+function plotLoALogic() {
+    const loas = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
+    let lows = [];
+    let highs = [];
+
+    loas.forEach(l => {
+        let low, high;
+        if (l === 1) { low = 0.0; high = 1.0; }
+        else if (l === 10) { low = 0.5; high = 0.5; }
+        else {
+            let w = 1 - (l - 1) / 9;
+            low = 0.5 - (w / 2);
+            high = 0.5 + (w / 2);
+        }
+        lows.append ? lows.push(low) : lows.push(low); // Safety check
+        highs.push(high);
+    });
+
+    const traceLow = { x: loas, y: lows, name: 'Lower Threshold', line: {color: '#6366f1', width: 3} };
+    const traceHigh = { x: loas, y: highs, name: 'Upper Threshold', line: {color: '#ef4444', width: 3}, fill: 'tonexty', fillcolor: 'rgba(203, 213, 225, 0.3)' };
+
+    const layout = {
+        title: 'Metacognitive Layer: Uncertainty Zone Logic',
+        xaxis: { title: 'Level of Automation (LoA)', tickvals: loas },
+        yaxis: { title: 'Probability Threshold', range: [0, 1] },
+        margin: { t: 50, b: 50, l: 50, r: 50 },
+        plot_bgcolor: '#ffffff'
+    };
+
+    Plotly.newPlot('chart', [traceLow, traceHigh], layout);
 }
 </script>
 </body>
